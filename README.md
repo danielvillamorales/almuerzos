@@ -20,6 +20,7 @@ Además:
 - **Descargar PDF** (tabla con todos los pedidos, totales y quién falta por recibir y pagar) y **Descargar imagen** (PNG lista para WhatsApp), siempre en el orden elegido.
 - Totales por opción sumando las cantidades (por ejemplo 7 Sencillas, 8 Dobles, 15 Total) y cuántos se han entregado y pagado.
 - Atajos para Hoy, Mañana y los próximos días creados (con un punto naranja), y **+ Nuevo día**.
+- **Calendario**: al tocar la fecha se abre un calendario con los días que tienen venta marcados en naranja (también los pasados) y, debajo, la lista de esos días del mes con su producto y número de pedidos.
 - Tocando el nombre de una persona se puede editar o borrar su pedido. **Editar día** cambia el producto, las opciones o la observación, o borra el día con sus pedidos.
 - "Copiar resumen" y "Enviar por WhatsApp" mandan la lista del día con quién falta por recibir y por pagar.
 - Todos ven los mismos datos. La página se actualiza sola cada 20 segundos y cada vez que se vuelve a abrir.

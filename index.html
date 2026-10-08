@@ -100,8 +100,34 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 .datebox .k { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .datebox .day { font-weight: 700; font-size: 16px; text-align: center; }
 .datebox .day::first-letter { text-transform: uppercase; }
-.datebox input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-.datebox input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: auto; height: auto; cursor: pointer; }
+button.datebox { border: none; background: none; padding: 2px 0; color: inherit; font: inherit; }
+.datebox .day { display: inline-flex; align-items: center; gap: 6px; }
+.calicon { color: var(--accent); flex: none; }
+.datebox[aria-expanded="true"] .calicon { color: var(--fg); }
+
+/* Calendario con los días que tienen venta */
+.cal { background: var(--soft); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 10px; margin-top: -8px; }
+.cal-head { display: flex; align-items: center; gap: 8px; }
+.cal-title { flex: 1; text-align: center; font-weight: 700; font-size: 16px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-wd { text-align: center; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: var(--muted); padding: 4px 0; }
+.cal-day { position: relative; border: none; background: var(--card); border-radius: 10px; min-height: 40px; font-weight: 500; font-size: 15px; font-variant-numeric: tabular-nums; color: var(--fg); }
+.cal-day.has { background: var(--warn-soft); color: var(--warn); font-weight: 800; }
+.cal-day.has::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: currentColor; }
+.cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-day.sel { background: var(--dark-tile); color: var(--dark-tile-fg); }
+.cal-legend { display: flex; gap: 14px; justify-content: center; font-size: 12.5px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-legend i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.lg-has { background: var(--warn-soft); box-shadow: inset 0 0 0 1px var(--warn); }
+.lg-today { background: var(--card); box-shadow: inset 0 0 0 2px var(--accent); }
+.cal-list { display: flex; flex-direction: column; gap: 6px; }
+.cal-list .muted { color: var(--muted); font-size: 14px; text-align: center; padding: 4px 0; }
+.cal-item { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 12px; text-align: left; font-size: 14px; }
+.cal-item b { font-weight: 700; white-space: nowrap; }
+.cal-item .p { flex: 1; min-width: 0; color: var(--muted); overflow-wrap: break-word; }
+.cal-item .c { flex: none; font-weight: 700; color: var(--warn); font-size: 13px; }
+.cal-item.sel { border-color: var(--fg); }
 .days, .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .days { margin-top: -6px; }
 .daychip, .fchip { flex: none; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 12px; font-size: 13.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
@@ -275,12 +301,25 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   <div class="view" id="dayView">
   <div class="datebar" id="datebar">
     <button class="nav" id="prev" type="button" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
-    <label class="datebox">
+    <button type="button" class="datebox" id="dateBtn" aria-expanded="false" aria-controls="cal">
       <span class="k">Día de venta</span>
-      <span class="day" id="dayLabel"></span>
-      <input type="date" id="date" aria-label="Elegir el día de venta">
-    </label>
+      <span class="day"><span id="dayLabel"></span><svg class="calicon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+    </button>
     <button class="nav" id="next" type="button" aria-label="Día siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+  </div>
+  <div class="cal" id="cal" hidden>
+    <div class="cal-head">
+      <button class="nav" id="calPrev" type="button" aria-label="Mes anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="nav" id="calNext" type="button" aria-label="Mes siguiente"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend"><span><i class="lg-has"></i>Día con venta</span><span><i class="lg-today"></i>Hoy</span></div>
+    <div class="cal-list" id="calList"></div>
+    <div class="frow end">
+      <button type="button" class="linkbtn accent" id="calToday">Ir a hoy</button>
+      <button type="button" class="linkbtn" id="calClose">Cerrar</button>
+    </div>
   </div>
   <div class="days" id="days" role="group" aria-label="Días de venta"></div>
 
@@ -413,7 +452,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 <script>
 (() => {
   const API = String(window.ALMUERZOS_API_URL || "").trim();
-  const APP_VERSION = "2026-10-08-6"; // igual que version.txt; se cambia en cada publicación
+  const APP_VERSION = "2026-10-08-7"; // igual que version.txt; se cambia en cada publicación
   const $ = (id) => document.getElementById(id);
 
   // ---------- Fechas (AAAA-MM-DD en hora local) ----------
@@ -525,7 +564,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   function loadStore() {
     try {
       const s = JSON.parse(localStorage.getItem(STORE) || "null");
-      if (s && s.api === API) { Object.assign(memo, s.memo || {}); meta = s.meta || null; }
+      if (s && s.api === API) { Object.assign(memo, s.memo || {}); meta = s.meta || null; allDays = s.all || {}; }
     } catch (_) {}
   }
   let storeTimer = null;
@@ -536,7 +575,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
         const min = addDays(todayKey(), -7);
         const keep = {};
         for (const k of Object.keys(memo)) if (k >= min || k === date) keep[k] = memo[k];
-        localStorage.setItem(STORE, JSON.stringify({ api: API, memo: keep, meta }));
+        localStorage.setItem(STORE, JSON.stringify({ api: API, memo: keep, meta, all: allDays }));
       } catch (_) {}
     }, 400);
   }
@@ -660,7 +699,6 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 
   // ---------- Pintar ----------
   function renderDate() {
-    $("date").value = date;
     const r = relName(date);
     $("dayLabel").textContent = (r ? r + ", " : "") + dayText(date);
   }
@@ -909,6 +947,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const showOrders = loaded && (!!day || orders.length > 0);
     $("ordersArea").hidden = !showOrders;
     if (showOrders) { renderFilters(); renderSorts(); renderList(); renderForm(); renderTotals(); }
+    renderCal();
     const u = units();
     if (view === "debts") { $("count").textContent = "Por cobrar · todos los días"; return; }
     $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "") + (fresh ? "" : " · actualizando…");
@@ -968,8 +1007,73 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   }
   $("prev").onclick = () => go(addDays(date, -1));
   $("next").onclick = () => go(addDays(date, 1));
-  $("date").onchange = (e) => { if (e.target.value) go(e.target.value); };
-  $("date").onclick = (e) => { try { e.target.showPicker && e.target.showPicker(); } catch (_) {} };
+
+  // ---------- Calendario: marca los días que tienen venta ----------
+  let calOpen = false, calMonth = date.slice(0, 7);
+  let allDays = {}, allDaysAt = 0; // todas las fechas con venta o pedidos (también las pasadas)
+  const calInfo = (k) => (k >= todayKey() ? (days[k] || allDays[k]) : (allDays[k] || days[k])) || null;
+  const shiftMonth = (ym, n) => { const [y, m] = ym.split("-").map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
+  function setAllDays(map) {
+    allDays = map || {};
+    allDaysAt = Date.now();
+    saveStore();
+    renderCal();
+  }
+  async function loadAllDays(force) {
+    if (!API || (!force && Date.now() - allDaysAt < 3 * 60000)) return;
+    try { setAllDays((await apiGet({ action: "list", fecha: todayKey() })).days); } catch (_) {}
+  }
+  function renderCal() {
+    $("cal").hidden = !calOpen;
+    $("dateBtn").setAttribute("aria-expanded", String(calOpen));
+    if (!calOpen) return;
+    const [y, m] = calMonth.split("-").map(Number);
+    $("calTitle").textContent = `${cap(MONTHS_LONG[m - 1])} ${y}`;
+    const grid = $("calGrid");
+    grid.textContent = "";
+    for (const w of ["L", "M", "M", "J", "V", "S", "D"]) {
+      const h = document.createElement("span"); h.className = "cal-wd"; h.textContent = w; grid.appendChild(h);
+    }
+    const offset = (new Date(y, m - 1, 1).getDay() + 6) % 7; // la semana empieza el lunes
+    for (let i = 0; i < offset; i++) grid.appendChild(document.createElement("span"));
+    const t = todayKey(), inMonth = [];
+    for (let d = 1, n = new Date(y, m, 0).getDate(); d <= n; d++) {
+      const k = `${y}-${pad(m)}-${pad(d)}`;
+      const info = calInfo(k);
+      if (info) inMonth.push([k, info]);
+      const b = btn(String(d), () => pickDay(k), "cal-day" + (info ? " has" : "") + (k === t ? " today" : "") + (k === date ? " sel" : ""));
+      b.setAttribute("aria-label", cap(dayText(k)) + (info ? ` · ${info.producto || "pedidos"}${info.count ? ` · ${info.count} ${info.count === 1 ? "pedido" : "pedidos"}` : ""}` : ""));
+      grid.appendChild(b);
+    }
+    const list = $("calList");
+    list.textContent = "";
+    if (!inMonth.length) {
+      list.innerHTML = "<span class='muted'>No hay días con venta en este mes.</span>";
+      return;
+    }
+    for (const [k, info] of inMonth) {
+      const b = btn("", () => pickDay(k), "cal-item" + (k === date ? " sel" : ""));
+      const d = document.createElement("b"); d.textContent = shortDate(k);
+      const p = document.createElement("span"); p.className = "p"; p.textContent = info.producto || "Pedidos";
+      const c = document.createElement("span"); c.className = "c"; c.textContent = info.count ? `${info.count} ${info.count === 1 ? "pedido" : "pedidos"}` : "sin pedidos";
+      b.append(d, p, c);
+      list.appendChild(b);
+    }
+  }
+  function pickDay(k) {
+    calOpen = false;
+    renderCal();
+    go(k);
+  }
+  $("dateBtn").onclick = () => {
+    calOpen = !calOpen;
+    if (calOpen) { calMonth = date.slice(0, 7); loadAllDays(false); }
+    renderCal();
+  };
+  $("calPrev").onclick = () => { calMonth = shiftMonth(calMonth, -1); renderCal(); };
+  $("calNext").onclick = () => { calMonth = shiftMonth(calMonth, 1); renderCal(); };
+  $("calToday").onclick = () => pickDay(todayKey());
+  $("calClose").onclick = () => { calOpen = false; renderCal(); };
 
   // Día de venta
   function parseOpts(s) {
@@ -1130,6 +1234,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       const t = todayKey();
       const first = await apiGet({ action: "list", fecha: t });
       debts.days = first.days || {};
+      setAllDays(debts.days);
       const dates = Object.keys(debts.days).filter((k) => k <= t && debts.days[k].count > 0).sort();
       debts.total = dates.length;
       const byDate = {};
