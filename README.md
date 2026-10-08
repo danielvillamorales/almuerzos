@@ -14,7 +14,9 @@ App para tomar los pedidos de almuerzo de varias personas, por día, y llevar el
 
 Además:
 
-- Filtros **Todos, Por entregar, Entregados y Sin pagar**, y **Por lugar** para agrupar las entregas por parte.
+- Filtros **Todos, Por entregar, Entregados y Sin pagar**.
+- **Ordenar** por llegada, dirección (la parte a la que va), nombre u hora. Por dirección y por hora se agrupan con un título por grupo. El orden elegido se recuerda en cada teléfono.
+- **Descargar PDF** (tabla con todos los pedidos, totales y quién falta por recibir y pagar) y **Descargar imagen** (PNG lista para WhatsApp), siempre en el orden elegido.
 - Totales por opción sumando las cantidades (por ejemplo 7 Sencillas, 8 Dobles, 15 Total) y cuántos se han entregado y pagado.
 - Atajos para Hoy, Mañana y los próximos días creados (con un punto naranja), y **+ Nuevo día**.
 - Tocando el nombre de una persona se puede editar o borrar su pedido. **Editar día** cambia el producto, las opciones o la observación, o borra el día con sus pedidos.
@@ -84,6 +86,7 @@ Cualquiera con el enlace puede borrar pedidos. Si se borra algo por error, en la
 
 - `index.html`: la página (HTML, CSS y JavaScript, sin dependencias).
 - `config.js`: la URL de la hoja de Google.
+- `vendor/`: jsPDF y jsPDF-AutoTable (MIT) para el PDF; solo se cargan al tocar **Descargar PDF**.
 - `apps-script/Codigo.gs`: el servidor en Google Apps Script. Usa dos pestañas de la hoja:
   - **Dias**: `fecha, producto, opciones, hora, observacion, creado` (un día de venta por fecha).
   - **Pedidos**: `id, fecha, nombre, opcion, cantidad, parte, hora, nota, pagado, entregado, creado` (en una hoja que ya existía, las columnas nuevas se agregan al final).

@@ -128,7 +128,12 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 .confirmbox { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .confirmbox span { font-weight: 600; font-size: 14px; margin-right: auto; }
 
-/* Filtros */
+/* Filtros y orden */
+.sortlbl { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); align-self: center; margin-right: 2px; }
+.exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.expbtn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 12px 10px; font-weight: 600; font-size: 14px; color: var(--fg); }
+.expbtn svg { color: var(--accent); flex: none; }
+.expbtn:disabled { opacity: .55; cursor: default; }
 .fchip { font-size: 13px; padding: 6px 11px; }
 .fchip .c { color: var(--muted); font-variant-numeric: tabular-nums; }
 .fchip[aria-pressed="true"] .c { color: inherit; opacity: .75; }
@@ -297,6 +302,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 
   <div id="ordersArea" style="display:flex;flex-direction:column;gap:18px" hidden>
     <div class="filters" id="filters" role="group" aria-label="Filtrar pedidos"></div>
+    <div class="filters" id="sorts" role="group" aria-label="Ordenar pedidos"></div>
     <section>
       <div class="table" id="table">
         <div class="th c-name">Nombre</div><div class="th c-pill">Pedido</div><div class="th c-time">Hora</div>
@@ -319,7 +325,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
         </div>
       </div>
       <div class="qtynote" id="qtyNote" hidden>Para guardar cantidades hay que actualizar el código en Google (pasos en el README).</div>
-      <input class="field" id="place" placeholder="¿Para qué parte va? Ej: Diseño, Costos" maxlength="40" list="places">
+      <input class="field" id="place" placeholder="¿A qué dirección o parte va? Ej: Diseño, Costos" maxlength="40" list="places">
       <datalist id="places"></datalist>
       <div class="frow">
         <input class="field" type="time" id="time" aria-label="Hora">
@@ -332,6 +338,16 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     </form>
 
     <div class="totals" id="totals"></div>
+    <div class="exports">
+      <button type="button" class="expbtn" id="dlPdf">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg>
+        Descargar PDF
+      </button>
+      <button type="button" class="expbtn" id="dlImg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>
+        Descargar imagen
+      </button>
+    </div>
     <div class="foot">
       <span id="progress"></span>
       <span class="links">
@@ -363,6 +379,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   const forText = (k) => { const r = relName(k); return r ? `${r.toLowerCase()}, ${dayText(k)}` : `el ${dayText(k)}`; };
 
   const CLOCK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  const CLOCK_SM = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   const PIN = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
   const PALETTE = [
     ["#fde6d2", "#c4500f"], ["#d8f5de", "#2e8b3e"], ["#d6eafc", "#1f6fc4"], ["#e6defd", "#6a43c9"],
@@ -380,7 +397,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (/z$/i.test(w)) return w.slice(0, -1) + "ces";
     return w + "es";
   };
-  const placeKey = (o) => String(o.place || "").trim().toLocaleLowerCase("es");
+  const placeKey = (o) => String(o.place || "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const clampQty = (v) => { const n = Math.floor(Number(v)); return n >= 1 ? Math.min(n, 99) : 1; };
   const qtyOf = (o) => clampQty(o.qty == null ? 1 : o.qty);
   const optText = (o) => { const q = qtyOf(o); return q > 1 ? `${q} ${plural(o.option || "", q)}` : (o.option || "—"); };
@@ -389,7 +406,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   let date = todayKey();
   let day = null, orders = [], days = {};
   let loaded = false, loadError = false;
-  let filter = "all", byPlace = false;
+  let filter = "all", sortBy = "arrival";
   let optSel = "";
   let openRow = null, confirmDel = false, editingId = null;
   let dayMode = null, dayConfirm = false;
@@ -397,7 +414,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   let pending = 0, writeSeq = 0;
   let apiVersion = 0; // 0: todavía no se sabe; 1: código viejo sin cantidades; 2 o más: guarda cantidades
   const savingIds = new Set();
-  try { byPlace = localStorage.getItem("almuerzos.porLugar") === "1"; } catch (_) {}
+  try { sortBy = localStorage.getItem("almuerzos.orden") || (localStorage.getItem("almuerzos.porLugar") === "1" ? "place" : "arrival"); } catch (_) {}
 
   function setStatus(msg, opt = {}) {
     const s = $("status");
@@ -639,6 +656,23 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   }
 
   const FILTERS = [["all", "Todos"], ["pend", "Por entregar"], ["done", "Entregados"], ["unpaid", "Sin pagar"]];
+  const SORTS = [["arrival", "Llegada"], ["place", "Dirección"], ["name", "Nombre"], ["time", "Hora"]];
+  const coll = new Intl.Collator("es", { sensitivity: "base", numeric: true });
+  const sortName = () => (SORTS.find(([k]) => k === sortBy) || SORTS[0])[1].toLowerCase();
+  function sortOrders(list) {
+    const cmp = {
+      name: (a, b) => coll.compare(a.name, b.name) || a.createdAt - b.createdAt,
+      place: (a, b) => (!a.place - !b.place) || coll.compare(a.place || "", b.place || "") || coll.compare(a.name, b.name),
+      time: (a, b) => (!a.time - !b.time) || String(a.time || "").localeCompare(String(b.time || "")) || coll.compare(a.place || "", b.place || "") || coll.compare(a.name, b.name)
+    }[sortBy] || ((a, b) => a.createdAt - b.createdAt);
+    return list.slice().sort(cmp);
+  }
+  // Título del grupo de cada pedido según el orden elegido (null: sin títulos)
+  function groupOf(o) {
+    if (sortBy === "place") return { key: placeKey(o), label: o.place || "Sin dirección", icon: PIN };
+    if (sortBy === "time") return { key: o.time || "", label: o.time || "Sin hora", icon: CLOCK_SM };
+    return null;
+  }
   function renderFilters() {
     const counts = {
       all: orders.length,
@@ -654,16 +688,24 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       const c = document.createElement("span"); c.className = "c"; c.textContent = counts[k]; b.appendChild(c);
       box.appendChild(b);
     }
-    const g = btn("", () => {
-      byPlace = !byPlace;
-      try { localStorage.setItem("almuerzos.porLugar", byPlace ? "1" : "0"); } catch (_) {}
-      renderAll();
-    }, "fchip");
-    g.innerHTML = PIN;
-    g.append("Por lugar");
-    g.setAttribute("aria-pressed", String(byPlace));
-    box.appendChild(g);
     box.hidden = !orders.length;
+  }
+  function renderSorts() {
+    const box = $("sorts");
+    box.textContent = "";
+    const l = document.createElement("span");
+    l.className = "sortlbl"; l.textContent = "Ordenar";
+    box.appendChild(l);
+    for (const [k, label] of SORTS) {
+      const b = btn(label, () => {
+        sortBy = k;
+        try { localStorage.setItem("almuerzos.orden", k); } catch (_) {}
+        renderAll();
+      }, "fchip");
+      b.setAttribute("aria-pressed", String(sortBy === k));
+      box.appendChild(b);
+    }
+    box.hidden = orders.length < 2;
   }
 
   function optIndex(name) {
@@ -671,15 +713,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     return i >= 0 ? i : 5;
   }
   function visible() {
-    let list = orders.filter((o) => filter === "pend" ? !o.delivered : filter === "done" ? o.delivered : filter === "unpaid" ? !o.paid : true);
-    if (byPlace) {
-      list = list.slice().sort((a, b) => {
-        const pa = placeKey(a), pb = placeKey(b);
-        if (!pa !== !pb) return pa ? -1 : 1; // sin lugar al final
-        return pa.localeCompare(pb, "es") || a.createdAt - b.createdAt;
-      });
-    }
-    return list;
+    return sortOrders(orders.filter((o) => filter === "pend" ? !o.delivered : filter === "done" ? o.delivered : filter === "unpaid" ? !o.paid : true));
   }
 
   function rowFor(o) {
@@ -752,13 +786,14 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const list = visible();
     let last = null;
     for (const o of list) {
-      if (byPlace && placeKey(o) !== last) {
-        last = placeKey(o);
+      const g = groupOf(o);
+      if (g && g.key !== last) {
+        last = g.key;
         const h = document.createElement("div");
         h.className = "gh";
-        h.innerHTML = PIN;
-        const label = document.createElement("span"); label.textContent = o.place || "Sin lugar";
-        const c = document.createElement("span"); c.className = "c"; c.textContent = list.filter((x) => placeKey(x) === last).length;
+        h.innerHTML = g.icon;
+        const label = document.createElement("span"); label.textContent = g.label;
+        const c = document.createElement("span"); c.className = "c"; c.textContent = list.filter((x) => groupOf(x).key === g.key).length;
         h.append(label, c);
         table.appendChild(h);
       }
@@ -819,7 +854,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     renderDay();
     const showOrders = loaded && (!!day || orders.length > 0);
     $("ordersArea").hidden = !showOrders;
-    if (showOrders) { renderFilters(); renderList(); renderForm(); renderTotals(); }
+    if (showOrders) { renderFilters(); renderSorts(); renderList(); renderForm(); renderTotals(); }
     const u = units();
     $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "") + (fresh ? "" : " · actualizando…");
   }
@@ -830,23 +865,22 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (day && day.observacion) lines.push(day.observacion);
     lines.push("");
     const fmt = (o) => `${o.name} — ${optText(o)}${o.time && (!day || o.time !== day.hora) ? " " + o.time : ""}${o.note ? " (" + o.note + ")" : ""}${o.delivered ? " ✓entregado" : ""}${o.paid ? " ✓pagó" : ""}`;
-    if (byPlace) {
-      const groups = new Map();
-      for (const o of orders) {
-        const k = placeKey(o);
-        if (!groups.has(k)) groups.set(k, { label: o.place || "Sin lugar", list: [] });
-        groups.get(k).list.push(o);
+    const sorted = sortOrders(orders);
+    if (groupOf(sorted[0] || {})) {
+      let last = null;
+      for (const o of sorted) {
+        const g = groupOf(o);
+        if (g.key !== last) {
+          if (last !== null) lines.push("");
+          last = g.key;
+          lines.push(`*${g.label}* (${sorted.filter((x) => groupOf(x).key === g.key).length})`);
+        }
+        lines.push(`- ${fmt(o)}${sortBy === "time" && o.place ? " · " + o.place : ""}`);
       }
-      [...groups.keys()].sort((a, b) => (!a) - (!b) || a.localeCompare(b, "es")).forEach((k) => {
-        const g = groups.get(k);
-        lines.push(`*${g.label}* (${g.list.length})`);
-        g.list.forEach((o) => lines.push(`- ${fmt(o)}`));
-        lines.push("");
-      });
     } else {
-      orders.forEach((o, i) => lines.push(`${i + 1}. ${fmt(o)}${o.place ? " · " + o.place : ""}`));
-      lines.push("");
+      sorted.forEach((o, i) => lines.push(`${i + 1}. ${fmt(o)}${o.place ? " · " + o.place : ""}`));
     }
+    lines.push("");
     lines.push(optionList().map((name) => { const n = countOf(name); return `${plural(name, n)}: ${n}`; }).concat(`Total: ${units()}`).join(" · "));
     const pend = orders.filter((o) => !o.delivered).map((o) => o.name);
     const owe = orders.filter((o) => !o.paid).map((o) => o.name);
@@ -1006,6 +1040,246 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   $("qtyMinus").onclick = () => { $("qty").value = Math.max(1, clampQty($("qty").value) - 1); };
   $("qtyPlus").onclick = () => { $("qty").value = Math.min(99, clampQty($("qty").value) + 1); };
   $("qty").onchange = () => { $("qty").value = clampQty($("qty").value); };
+
+  // ---------- Descargar PDF o imagen (todos los pedidos, en el orden elegido) ----------
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  const fileBase = () => `pedidos-${date}`;
+  function exportRows() {
+    const rows = [];
+    let last = null, n = 0;
+    const sorted = sortOrders(orders);
+    for (const o of sorted) {
+      const g = groupOf(o);
+      if (g && g.key !== last) {
+        last = g.key;
+        rows.push({ group: g.label, count: sorted.filter((x) => groupOf(x).key === g.key).length });
+      }
+      rows.push({ o, n: ++n });
+    }
+    return rows;
+  }
+  function exportLines() {
+    const n = orders.length;
+    const lines = [
+      optionList().map((name) => { const c = countOf(name); return `${plural(name, c)}: ${c}`; }).concat(`Total: ${units()}`).join("   ·   "),
+      `Entregados ${orders.filter((o) => o.delivered).length} de ${n}   ·   Pagaron ${orders.filter((o) => o.paid).length} de ${n}`
+    ];
+    const pend = sortOrders(orders.filter((o) => !o.delivered)).map((o) => o.name);
+    const owe = sortOrders(orders.filter((o) => !o.paid)).map((o) => o.name);
+    if (pend.length) lines.push(`Por entregar: ${pend.join(", ")}`);
+    if (owe.length) lines.push(`Sin pagar: ${owe.join(", ")}`);
+    return lines;
+  }
+  function saveBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const el = document.createElement("script");
+      el.src = src;
+      el.onload = () => resolve();
+      el.onerror = () => reject(new Error("no se pudo cargar " + src));
+      document.head.appendChild(el);
+    });
+  }
+  async function busy(id, label, fn) {
+    const b = $(id);
+    if (b.disabled) return;
+    b.disabled = true;
+    setStatus(label);
+    try { await fn(); }
+    catch (e) { setStatus("No se pudo descargar: " + (e && e.message ? e.message : e) + ".", { err: true }); }
+    finally { b.disabled = false; }
+  }
+
+  async function downloadPdf() {
+    if (!(window.jspdf && window.jspdf.jsPDF)) await loadScript("vendor/jspdf.umd.min.js");
+    if (!window.jspdf.jsPDF.API.autoTable) await loadScript("vendor/jspdf.plugin.autotable.min.js");
+    const doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 40;
+    let y = 50;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(31, 27, 24);
+    doc.text(`${day ? day.producto : "Pedidos"} - ${cap(dayText(date))}`, M, y);
+    y += 18;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(120, 113, 108);
+    const meta = [`${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}`, `${units()} unidades`];
+    if (day && day.hora) meta.push(`entrega ${day.hora}`);
+    meta.push(`ordenado por ${sortName()}`);
+    doc.text(meta.join("   ·   "), M, y);
+    if (day && day.observacion) {
+      const obs = doc.splitTextToSize(day.observacion, W - 2 * M);
+      doc.text(obs, M, y + 14);
+      y += 14 * obs.length;
+    }
+    const COLS = 8;
+    const body = exportRows().map((r) => r.group
+      ? [{ content: `${r.group}  (${r.count})`, colSpan: COLS, styles: { fillColor: [253, 238, 227], textColor: [196, 80, 15], fontStyle: "bold", halign: "left" } }]
+      : [String(r.n), r.o.name, optText(r.o), r.o.place || "", r.o.time || "", r.o.note || "", r.o.delivered ? "Sí" : "No", r.o.paid ? "Sí" : "No"]);
+    doc.autoTable({
+      startY: y + 14,
+      head: [["#", "Nombre", "Pedido", "Dirección", "Hora", "Nota", "Entregado", "Pagó"]],
+      body,
+      margin: { left: M, right: M },
+      styles: { font: "helvetica", fontSize: 9.5, cellPadding: 5, textColor: [31, 27, 24], lineColor: [236, 232, 228], lineWidth: 0.5, valign: "middle" },
+      headStyles: { fillColor: [239, 108, 26], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [250, 248, 246] },
+      columnStyles: { 0: { cellWidth: 22, halign: "right", textColor: [143, 138, 134] }, 4: { cellWidth: 38 }, 6: { cellWidth: 58, halign: "center" }, 7: { cellWidth: 34, halign: "center" } },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index >= 6 && d.cell.raw === "Sí") { d.cell.styles.textColor = [46, 139, 62]; d.cell.styles.fontStyle = "bold"; }
+      }
+    });
+    let fy = doc.lastAutoTable.finalY + 24;
+    doc.setFontSize(10.5); doc.setTextColor(31, 27, 24);
+    exportLines().forEach((line, i) => {
+      doc.setFont("helvetica", i === 0 ? "bold" : "normal");
+      const wrapped = doc.splitTextToSize(line, W - 2 * M);
+      if (fy + wrapped.length * 14 > H - 40) { doc.addPage(); fy = 50; }
+      doc.text(wrapped, M, fy);
+      fy += wrapped.length * 14 + 4;
+    });
+    doc.save(fileBase() + ".pdf");
+    setStatus("PDF descargado.");
+  }
+
+  // Imagen PNG de 1080 px de ancho, en colores claros para compartir
+  const IMG_OPT = [["#e8f7ec", "#2e8b3e"], ["#fdeee3", "#d4500f"], ["#e3eefc", "#1f63b5"], ["#ece5fd", "#6a43c9"], ["#fde3ec", "#c42659"], ["#fbf0c9", "#8a5a00"]];
+  function drawImage() {
+    const W = 1080, P = 56, F = "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+    const C = { fg: "#1f1b18", muted: "#8f8a86", line: "#ece8e4", accent: "#ef6c1a", soft: "#f7f4f1", band: "#fdeee3", bandFg: "#c4500f", ok: "#2e8b3e", okSoft: "#e8f7ec", info: "#1f63b5", infoSoft: "#e3eefc" };
+    const cols = { n: P, name: P + 36, pill: P + 374, place: P + 562, time: P + 740, state: P + 816 };
+    const rows = exportRows();
+    const meas = document.createElement("canvas").getContext("2d");
+    const wrap = (ctx, text, font, maxW) => {
+      ctx.font = font;
+      const out = [];
+      let cur = "";
+      for (const w of String(text).split(/\s+/)) {
+        const t = cur ? cur + " " + w : w;
+        if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t;
+      }
+      if (cur) out.push(cur);
+      return out;
+    };
+    const fit = (ctx, text, maxW) => {
+      text = String(text || "");
+      if (ctx.measureText(text).width <= maxW) return text;
+      while (text && ctx.measureText(text + "…").width > maxW) text = text.slice(0, -1);
+      return text + "…";
+    };
+    const obsLines = day && day.observacion ? wrap(meas, day.observacion, `400 26px ${F}`, W - 2 * P) : [];
+    const footLines = exportLines().flatMap((l, i) => wrap(meas, l, `${i === 0 ? 700 : 400} 26px ${F}`, W - 2 * P));
+    const rowH = (r) => r.group ? 64 : (r.o.note ? 104 : 84);
+    const headH = 150 + obsLines.length * 36;
+    const H = headH + 60 + rows.reduce((h, r) => h + rowH(r), 0) + 40 + footLines.length * 38 + 70;
+
+    const cv = document.createElement("canvas");
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext("2d");
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    ctx.textBaseline = "middle";
+    const round = (x, y, w, h, r, fill) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+    };
+    const pill = (x, yMid, text, bg, fg, size) => {
+      ctx.font = `600 ${size}px ${F}`;
+      const w = ctx.measureText(text).width + size * 1.1;
+      round(x, yMid - size * 0.85, w, size * 1.7, size * 0.85, bg);
+      ctx.fillStyle = fg; ctx.fillText(text, x + size * 0.55, yMid + 1);
+      return w;
+    };
+
+    // Encabezado
+    round(P, 48, 76, 76, 20, C.accent);
+    ctx.save();
+    ctx.translate(P + 20, 68); ctx.scale(1.5, 1.5);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.stroke(new Path2D("M5 3v6a2 2 0 0 0 2 2v10M9 3v6a2 2 0 0 1-2 2M7 3v5M17 21V3c-2.2 1-3.5 4-3.5 7.5S14.8 14 17 14"));
+    ctx.restore();
+    ctx.fillStyle = C.fg; ctx.font = `800 44px ${F}`;
+    ctx.fillText(fit(ctx, day ? day.producto : "Pedidos", W - P * 2 - 100), P + 100, 72);
+    ctx.fillStyle = C.muted; ctx.font = `500 26px ${F}`;
+    const sub = [cap(dayText(date)), `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}`];
+    if (day && day.hora) sub.push(`entrega ${day.hora}`);
+    ctx.fillText(fit(ctx, sub.join("  ·  "), W - P * 2 - 100), P + 100, 112);
+    let y = 150;
+    ctx.font = `400 26px ${F}`;
+    for (const l of obsLines) { ctx.fillText(l, P, y + 14); y += 36; }
+
+    // Títulos de columnas
+    y += 16;
+    ctx.fillStyle = C.muted; ctx.font = `600 19px ${F}`;
+    ctx.fillText("#", cols.n, y + 14);
+    ctx.fillText("NOMBRE", cols.name, y + 14);
+    ctx.fillText("PEDIDO", cols.pill, y + 14);
+    ctx.fillText("DIRECCIÓN", cols.place, y + 14);
+    ctx.fillText("HORA", cols.time, y + 14);
+    ctx.fillText("ESTADO", cols.state, y + 14);
+    y += 44;
+    ctx.fillStyle = C.line; ctx.fillRect(P, y - 2, W - 2 * P, 2);
+
+    // Filas
+    for (const r of rows) {
+      const h = rowH(r);
+      if (r.group) {
+        round(P, y + 10, W - 2 * P, h - 20, 14, C.band);
+        ctx.fillStyle = C.bandFg; ctx.font = `700 24px ${F}`;
+        ctx.fillText(`${r.group}  ·  ${r.count}`, P + 18, y + h / 2);
+        y += h;
+        continue;
+      }
+      const o = r.o, mid = y + h / 2;
+      ctx.fillStyle = C.muted; ctx.font = `500 20px ${F}`;
+      ctx.fillText(String(r.n), cols.n, mid);
+      const [abg, afg] = colorFor(o.name || "?");
+      ctx.beginPath(); ctx.arc(cols.name + 22, mid, 22, 0, Math.PI * 2); ctx.fillStyle = abg; ctx.fill();
+      ctx.fillStyle = afg; ctx.font = `700 20px ${F}`; ctx.textAlign = "center";
+      ctx.fillText((o.name || "?").trim().charAt(0).toUpperCase(), cols.name + 22, mid + 1);
+      ctx.textAlign = "left";
+      ctx.fillStyle = C.fg; ctx.font = `600 27px ${F}`;
+      ctx.fillText(fit(ctx, o.name, cols.pill - cols.name - 66), cols.name + 56, o.note ? mid - 15 : mid);
+      if (o.note) { ctx.fillStyle = C.muted; ctx.font = `400 20px ${F}`; ctx.fillText(fit(ctx, o.note, cols.pill - cols.name - 66), cols.name + 56, mid + 20); }
+      const [pbg, pfg] = IMG_OPT[optIndex(o.option) % IMG_OPT.length];
+      ctx.font = `600 22px ${F}`;
+      pill(cols.pill, mid, fit(ctx, optText(o), cols.place - cols.pill - 36), pbg, pfg, 22);
+      ctx.fillStyle = C.fg; ctx.font = `400 23px ${F}`;
+      ctx.fillText(fit(ctx, o.place || "—", cols.time - cols.place - 14), cols.place, mid);
+      ctx.fillText(o.time || "—", cols.time, mid);
+      pill(cols.state, mid - 17, o.delivered ? "Entregado" : "Por entregar", o.delivered ? C.infoSoft : C.soft, o.delivered ? C.info : C.muted, 17);
+      pill(cols.state, mid + 19, o.paid ? "Pagó" : "Sin pagar", o.paid ? C.okSoft : C.soft, o.paid ? C.ok : C.muted, 17);
+      y += h;
+      ctx.fillStyle = C.line; ctx.fillRect(P, y - 1, W - 2 * P, 1);
+    }
+
+    // Totales y pendientes
+    y += 40;
+    footLines.forEach((l, i) => {
+      ctx.fillStyle = i === 0 ? C.fg : C.muted;
+      ctx.font = `${i === 0 ? 700 : 400} 26px ${F}`;
+      ctx.fillText(l, P, y + 14);
+      y += 38;
+    });
+    ctx.fillStyle = C.muted; ctx.font = `400 18px ${F}`;
+    ctx.fillText(`Pedido de almuerzos · ordenado por ${sortName()}`, P, H - 34);
+    return cv;
+  }
+  async function downloadImage() {
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const cv = drawImage();
+    const blob = await new Promise((resolve) => cv.toBlob(resolve, "image/png"));
+    if (!blob) throw new Error("el teléfono no pudo crear la imagen");
+    saveBlob(blob, fileBase() + ".png");
+    setStatus("Imagen descargada.");
+  }
+  $("dlPdf").onclick = () => busy("dlPdf", "Preparando el PDF…", downloadPdf);
+  $("dlImg").onclick = () => busy("dlImg", "Preparando la imagen…", downloadImage);
 
   // Compartir
   $("copy").onclick = () => {
