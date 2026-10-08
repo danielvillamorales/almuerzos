@@ -4,14 +4,19 @@ jobs:
   verificar:
     runs-on: ubuntu-latest
     steps:
-      - name: Llamar a la aplicación web (solo lectura)
+      - name: Revisar la página publicada y el código de Google (solo lectura)
         run: |
-          U='https://script.google.com/macros/s/AKfycbxsL9oCvYci5HQauzTMXRnr0lrxMZP67K1bdL6f43u8jVo2X7PKSgZAQXQzMBWxB9-3Sg/exec'
-          echo "=== ping"
-          curl -sS -L "$U" | head -c 800; echo
-          echo "=== list"
-          for i in 1 2 3; do s=$(date +%s%N); curl -sS -L "$U?action=list&fecha=$(date +%F)&desde=$(date +%F)" | head -c 600; echo; echo "  tardó $(( ($(date +%s%N)-s)/1000000 )) ms"; done
-          echo "=== POST sin cambios (accion desconocida)"
-          curl -sS -L --data '{"action":"verificar"}' -H 'Content-Type: text/plain;charset=utf-8' "$U" | head -c 800; echo
-          echo "=== CORS en GET"
-          curl -sS -L -D - -o /dev/null -H 'Origin: https://danielvillamorales.github.io' "$U?action=list&fecha=2026-10-08" | grep -i -E '^(HTTP|access-control-allow-origin|location|content-type)' | sed -E 's/(location: [^?]{0,60}).*/\1.../I'
+          P='https://danielvillamorales.github.io/almuerzos'
+          echo "=== config.js publicado"
+          curl -sS "$P/config.js?t=$(date +%s)" | grep ALMUERZOS
+          echo "=== index.html publicado: campo cantidad y versión de la página"
+          curl -sS "$P/?t=$(date +%s)" | grep -c 'id="qtyRow"'
+          curl -sS "$P/?t=$(date +%s)" | grep -c 'async function prefetch'
+          echo "=== caché del navegador"
+          curl -sSI "$P/config.js" | grep -i -E '^(cache-control|last-modified|age):'
+          for U in 'https://script.google.com/macros/s/AKfycbxsL9oCvYci5HQauzTMXRnr0lrxMZP67K1bdL6f43u8jVo2X7PKSgZAQXQzMBWxB9-3Sg/exec' 'https://script.google.com/macros/s/AKfycbwOQRt6n3OIn7qTmeDtEh6obharjy8Ko1prNdoECzVllwMfL3At_eJfwhIFN9SiIM8BdA/exec'; do
+            echo "=== ping ${U:40:20}"
+            curl -sS -L "$U" | head -c 300; echo
+          done
+          echo "=== pedidos del 2026-10-09 (nueva URL)"
+          curl -sS -L 'https://script.google.com/macros/s/AKfycbxsL9oCvYci5HQauzTMXRnr0lrxMZP67K1bdL6f43u8jVo2X7PKSgZAQXQzMBWxB9-3Sg/exec?action=list&fecha=2026-10-09&desde=2026-10-08' | head -c 1500; echo
