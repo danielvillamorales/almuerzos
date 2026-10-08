@@ -450,6 +450,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   const memo = {};  // fecha -> { day, orders }
   let meta = null;  // { days, names, places, version }
   let fresh = false; // ya llegó la respuesta de Google para la fecha en pantalla
+  const fetchedAt = {}; // fecha -> cuándo llegó su última respuesta
   const STORE = "almuerzos.memoria.v1";
   function loadStore() {
     try {
@@ -472,10 +473,15 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   function remember(j) {
     const f = j.fecha || date;
     memo[f] = { day: j.day || null, orders: Array.isArray(j.orders) ? j.orders : [] };
+    fetchedAt[f] = Date.now();
+    // "days" trae todas las fechas próximas con algo; las que no están quedaron vacías
+    const t = todayKey(), known = j.days || {};
+    for (const k of Object.keys(memo)) if (k >= t && k !== f && !known[k]) delete memo[k];
     if (j.upcoming) {
-      const t = todayKey();
-      for (const k of Object.keys(memo)) if (k >= t && k !== f && !j.upcoming[k]) delete memo[k];
-      for (const [k, v] of Object.entries(j.upcoming)) memo[k] = { day: v.day || null, orders: Array.isArray(v.orders) ? v.orders : [] };
+      for (const [k, v] of Object.entries(j.upcoming)) {
+        memo[k] = { day: v.day || null, orders: Array.isArray(v.orders) ? v.orders : [] };
+        fetchedAt[k] = Date.now();
+      }
     }
     meta = { days: j.days || {}, names: j.names || [], places: j.places || [], version: Number(j.version) || 1 };
     saveStore();
@@ -483,8 +489,8 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   function fromMemo(k) {
     const m = memo[k];
     if (m) { day = m.day; orders = m.orders.map((o) => ({ ...o })); loaded = true; fixOpt(); return true; }
-    // Google manda todos los próximos días con datos: si esta fecha no está, no tiene nada
-    if (apiVersion >= 3 && meta && k >= todayKey() && !days[k]) { day = null; orders = []; loaded = true; fixOpt(); return true; }
+    // "days" trae todas las fechas próximas con datos: si esta no está, no tiene nada
+    if (meta && k >= todayKey() && !days[k]) { day = null; orders = []; loaded = true; fixOpt(); return true; }
     return false;
   }
 
@@ -498,6 +504,28 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     loaded = true; fresh = true;
     fixOpt();
     remember(j);
+  }
+
+  // Con el código de Google anterior a la versión 3, la página pide por su cuenta
+  // los próximos días en segundo plano para que cambiar de día no espere.
+  let prefetching = false;
+  async function prefetch() {
+    if (prefetching || !API || apiVersion >= 3) return;
+    prefetching = true;
+    try {
+      const t = todayKey();
+      const pend = Object.keys(days)
+        .filter((k) => k >= t && k !== date && (!fetchedAt[k] || Date.now() - fetchedAt[k] > 5 * 60000))
+        .sort().slice(0, 6);
+      for (const k of pend) {
+        if (document.visibilityState !== "visible") break;
+        remember(await apiGet({ action: "list", fecha: k, desde: t }));
+      }
+    } catch (_) {
+      // sin conexión: se intenta de nuevo en la próxima actualización
+    } finally {
+      prefetching = false;
+    }
   }
 
   // Al abrir: si hoy no hay venta, mostrar el próximo día que sí tiene
@@ -522,6 +550,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       if (loadError) { loadError = false; setStatus(""); }
       if (autoJump()) return;
       renderAll();
+      setTimeout(prefetch, 300);
     } catch (e) {
       if (d !== date) return;
       loadError = true;
