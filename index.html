@@ -193,7 +193,13 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 .seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; align-self: flex-start; }
 .seg button { border: none; background: transparent; padding: 8px 14px; border-radius: 9px; font-weight: 600; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--obg, var(--soft)); color: var(--ofg, var(--fg)); }
-#time { width: 120px; flex: none; }
+#time { width: 140px; flex: none; }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); background: var(--card); border-radius: 12px; overflow: hidden; }
+.stepper button { border: none; background: none; width: 44px; height: 44px; font-size: 20px; font-weight: 600; color: var(--accent); }
+.stepper input { width: 46px; border: none; background: transparent; text-align: center; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.qtylabel { font-size: 14px; font-weight: 600; color: var(--muted); }
+.qtynote { font-size: 12.5px; color: var(--muted); }
 .primary { border: none; background: var(--accent); color: #fff; font-weight: 700; padding: 11px 18px; border-radius: 12px; }
 .primary:disabled { opacity: .5; cursor: default; }
 .linkbtn { border: none; background: none; color: var(--muted); font-weight: 600; padding: 8px; text-decoration: none; font-size: 14px; }
@@ -304,6 +310,15 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       <input class="field" id="name" placeholder="Nombre" maxlength="40" list="names" required>
       <datalist id="names"></datalist>
       <div class="seg" id="optSeg" role="group" aria-label="Opción"></div>
+      <div class="frow" id="qtyRow">
+        <span class="qtylabel" id="qtyLabel">Cantidad</span>
+        <div class="stepper" role="group" aria-labelledby="qtyLabel">
+          <button type="button" id="qtyMinus" aria-label="Uno menos">−</button>
+          <input id="qty" type="number" inputmode="numeric" min="1" max="99" value="1" aria-label="Cantidad">
+          <button type="button" id="qtyPlus" aria-label="Uno más">+</button>
+        </div>
+      </div>
+      <div class="qtynote" id="qtyNote" hidden>Para guardar cantidades hay que actualizar el código en Google (pasos en el README).</div>
       <input class="field" id="place" placeholder="¿Para qué parte va? Ej: Diseño, Costos" maxlength="40" list="places">
       <datalist id="places"></datalist>
       <div class="frow">
@@ -366,6 +381,9 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     return w + "es";
   };
   const placeKey = (o) => String(o.place || "").trim().toLocaleLowerCase("es");
+  const clampQty = (v) => { const n = Math.floor(Number(v)); return n >= 1 ? Math.min(n, 99) : 1; };
+  const qtyOf = (o) => clampQty(o.qty == null ? 1 : o.qty);
+  const optText = (o) => { const q = qtyOf(o); return q > 1 ? `${q} ${plural(o.option || "", q)}` : (o.option || "—"); };
 
   // ---------- Estado ----------
   let date = todayKey();
@@ -377,6 +395,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   let dayMode = null, dayConfirm = false;
   let picked = false, jumped = false;
   let pending = 0, writeSeq = 0;
+  let apiVersion = 0; // 2 o más: el código de Google ya guarda cantidades
   const savingIds = new Set();
   try { byPlace = localStorage.getItem("almuerzos.porLugar") === "1"; } catch (_) {}
 
@@ -431,6 +450,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     day = j.day || null;
     orders = Array.isArray(j.orders) ? j.orders.slice() : [];
     days = j.days || {};
+    apiVersion = Number(j.version) || 1;
     if (Array.isArray(j.names)) fillList("names", j.names);
     if (Array.isArray(j.places)) fillList("places", j.places);
     loaded = true;
@@ -612,7 +632,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (o.note) { const s = document.createElement("span"); s.textContent = (o.place ? "· " : "") + o.note; sub.appendChild(s); }
     sub.hidden = !o.place && !o.note;
     const pill = r.querySelector(".pill");
-    pill.textContent = o.option || "—";
+    pill.textContent = optText(o);
     pill.classList.add(oc(optIndex(o.option)));
     const t = r.querySelector(".time");
     if (o.time) { t.innerHTML = CLOCK; const sp = document.createElement("span"); sp.textContent = o.time; t.appendChild(sp); }
@@ -681,7 +701,8 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     for (const o of orders) if (o.option && !ops.some((x) => same(x, o.option))) ops.push(o.option);
     return ops;
   }
-  function countOf(name) { return orders.filter((o) => same(o.option, name)).length; }
+  function countOf(name) { return orders.filter((o) => same(o.option, name)).reduce((n, o) => n + qtyOf(o), 0); }
+  function units() { return orders.reduce((n, o) => n + qtyOf(o), 0); }
   function tile(n, label, cls) {
     const d = document.createElement("div");
     d.className = "tile " + cls;
@@ -695,7 +716,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const box = $("totals");
     box.textContent = "";
     ops.forEach((name, i) => { const n = countOf(name); box.appendChild(tile(n, plural(name, n), "opt " + oc(day ? optIndex(name) : i))); });
-    box.appendChild(tile(orders.length, "Total", "t"));
+    box.appendChild(tile(units(), "Total", "t"));
     const total = ops.length + 1;
     box.style.setProperty("--cols", String(total <= 3 ? total : total === 4 ? 2 : 3));
     const paid = orders.filter((o) => o.paid).length, deliv = orders.filter((o) => o.delivered).length;
@@ -712,6 +733,8 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       seg.appendChild(b);
     });
     $("openAdd").hidden = !day || !$("addForm").hidden;
+    $("qtyRow").hidden = apiVersion < 2;
+    $("qtyNote").hidden = apiVersion >= 2;
   }
 
   function renderAll() {
@@ -720,7 +743,8 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const showOrders = loaded && (!!day || orders.length > 0);
     $("ordersArea").hidden = !showOrders;
     if (showOrders) { renderFilters(); renderList(); renderForm(); renderTotals(); }
-    $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}`;
+    const u = units();
+    $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "");
   }
 
   function summary() {
@@ -728,7 +752,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (day && day.hora) lines.push(`Entrega: ${day.hora}`);
     if (day && day.observacion) lines.push(day.observacion);
     lines.push("");
-    const fmt = (o) => `${o.name} — ${o.option}${o.time && (!day || o.time !== day.hora) ? " " + o.time : ""}${o.note ? " (" + o.note + ")" : ""}${o.delivered ? " ✓entregado" : ""}${o.paid ? " ✓pagó" : ""}`;
+    const fmt = (o) => `${o.name} — ${optText(o)}${o.time && (!day || o.time !== day.hora) ? " " + o.time : ""}${o.note ? " (" + o.note + ")" : ""}${o.delivered ? " ✓entregado" : ""}${o.paid ? " ✓pagó" : ""}`;
     if (byPlace) {
       const groups = new Map();
       for (const o of orders) {
@@ -746,7 +770,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       orders.forEach((o, i) => lines.push(`${i + 1}. ${fmt(o)}${o.place ? " · " + o.place : ""}`));
       lines.push("");
     }
-    lines.push(optionList().map((name) => { const n = countOf(name); return `${plural(name, n)}: ${n}`; }).concat(`Total: ${orders.length}`).join(" · "));
+    lines.push(optionList().map((name) => { const n = countOf(name); return `${plural(name, n)}: ${n}`; }).concat(`Total: ${units()}`).join(" · "));
     const pend = orders.filter((o) => !o.delivered).map((o) => o.name);
     const owe = orders.filter((o) => !o.paid).map((o) => o.name);
     if (pend.length) lines.push(`Por entregar: ${pend.join(", ")}`);
@@ -859,7 +883,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     editingId = null;
     $("formTitle").textContent = `Nuevo pedido · ${day.producto}`;
     $("addBtn").textContent = "Agregar";
-    $("name").value = ""; $("place").value = ""; $("note").value = "";
+    $("name").value = ""; $("place").value = ""; $("note").value = ""; $("qty").value = 1;
     $("time").value = day.hora || "";
     fixOpt();
     $("addForm").hidden = false;
@@ -872,7 +896,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     editingId = id; openRow = null;
     $("formTitle").textContent = `Editar pedido de ${o.name}`;
     $("addBtn").textContent = "Guardar";
-    $("name").value = o.name; $("place").value = o.place || ""; $("note").value = o.note || ""; $("time").value = o.time || "";
+    $("name").value = o.name; $("place").value = o.place || ""; $("note").value = o.note || ""; $("time").value = o.time || ""; $("qty").value = qtyOf(o);
     optSel = day.opciones.find((x) => same(x, o.option)) || day.opciones[0];
     $("addForm").hidden = false;
     renderAll();
@@ -886,7 +910,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (!API || !day) return;
     const name = $("name").value.trim();
     if (!name) return;
-    const data = { name, option: optSel || day.opciones[0], place: $("place").value.trim(), time: $("time").value || "", note: $("note").value.trim() };
+    const data = { name, option: optSel || day.opciones[0], qty: apiVersion >= 2 ? clampQty($("qty").value) : 1, place: $("place").value.trim(), time: $("time").value || "", note: $("note").value.trim() };
     if (editingId) {
       const id = editingId;
       savingIds.add(id);
@@ -897,9 +921,12 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const o = { id: uid(), date, ...data, paid: false, delivered: false, createdAt: Date.now() };
     savingIds.add(o.id);
     mutate({ action: "add", order: o }, () => { orders.push(o); bump(date, 1); }, `Listo: pedido de ${name} para ${forText(date)}.`);
-    $("name").value = ""; $("place").value = ""; $("note").value = "";
+    $("name").value = ""; $("place").value = ""; $("note").value = ""; $("qty").value = 1;
     $("name").focus();
   });
+  $("qtyMinus").onclick = () => { $("qty").value = Math.max(1, clampQty($("qty").value) - 1); };
+  $("qtyPlus").onclick = () => { $("qty").value = Math.min(99, clampQty($("qty").value) + 1); };
+  $("qty").onchange = () => { $("qty").value = clampQty($("qty").value); };
 
   // Compartir
   $("copy").onclick = () => {

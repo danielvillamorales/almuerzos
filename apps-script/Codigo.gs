@@ -11,19 +11,20 @@
  *
  * Pestañas:
  *   Dias:    fecha, producto, opciones, hora, observacion, creado
- *   Pedidos: id, fecha, nombre, opcion, parte, hora, nota, pagado, entregado, creado
+ *   Pedidos: id, fecha, nombre, opcion, cantidad, parte, hora, nota, pagado, entregado, creado
  */
 
 var DIAS = { hoja: 'Dias', columnas: ['fecha', 'producto', 'opciones', 'hora', 'observacion', 'creado'] };
-var PEDIDOS = { hoja: 'Pedidos', columnas: ['id', 'fecha', 'nombre', 'opcion', 'parte', 'hora', 'nota', 'pagado', 'entregado', 'creado'] };
+var PEDIDOS = { hoja: 'Pedidos', columnas: ['id', 'fecha', 'nombre', 'opcion', 'cantidad', 'parte', 'hora', 'nota', 'pagado', 'entregado', 'creado'] };
 var ALIAS = { opcion: 'tipo' }; // hojas creadas con la primera versión
+var VERSION = 2; // la página la usa para saber si este código ya guarda cantidades
 
 /** Lectura: ?action=list&fecha=AAAA-MM-DD&desde=AAAA-MM-DD */
 function doGet(e) {
   var p = (e && e.parameter) || {};
   return responder_(function () {
     if (p.action === 'list') return estado_(p.fecha, p.desde);
-    return { app: 'almuerzos', hoja: libro_().getUrl() };
+    return { app: 'almuerzos', version: VERSION, hoja: libro_().getUrl() };
   });
 }
 
@@ -180,6 +181,7 @@ function leerPedidos_() {
       date: texto_(r[t.idx.fecha], tz, 'yyyy-MM-dd'),
       name: String(valor_(r, t.idx.nombre)).trim(),
       option: String(valor_(r, t.idx.opcion)).trim(),
+      qty: cantidad_(r[t.idx.cantidad]),
       place: String(valor_(r, t.idx.parte)).trim(),
       time: texto_(r[t.idx.hora], tz, 'HH:mm'),
       note: String(valor_(r, t.idx.nota)).trim(),
@@ -196,7 +198,7 @@ function leerPedidos_() {
 function estado_(fecha, desde) {
   var dias = leerDias_().lista;
   var pedidos = leerPedidos_().lista;
-  var res = { fecha: fecha || '', day: null, orders: [], days: {}, names: [], places: [] };
+  var res = { version: VERSION, fecha: fecha || '', day: null, orders: [], days: {}, names: [], places: [] };
   dias.forEach(function (d) {
     if (d.fecha === fecha) res.day = { fecha: d.fecha, producto: d.producto, opciones: d.opciones, hora: d.hora, observacion: d.observacion };
     if (!desde || d.fecha >= desde) res.days[d.fecha] = { producto: d.producto, count: 0 };
@@ -262,6 +264,7 @@ function agregar_(o) {
     fecha: fecha,
     nombre: nombre,
     opcion: opcionValida_(dia, o.option),
+    cantidad: cantidad_(o.qty),
     parte: limpiar_(o.place, 40),
     hora: hora_(o.time),
     nota: limpiar_(o.note, 80),
@@ -276,7 +279,7 @@ function actualizar_(id, c) {
   var p = buscar_(pedidos.lista, id);
   if (!p) throw new Error('Ese pedido ya no existe');
   var v = {
-    id: p.id, fecha: p.date, nombre: p.name, opcion: p.option, parte: p.place, hora: p.time, nota: p.note,
+    id: p.id, fecha: p.date, nombre: p.name, opcion: p.option, cantidad: p.qty, parte: p.place, hora: p.time, nota: p.note,
     pagado: p.paid ? 'Sí' : 'No', entregado: p.delivered ? 'Sí' : 'No', creado: p.createdAt
   };
   if ('paid' in c) v.pagado = c.paid === true ? 'Sí' : 'No';
@@ -286,6 +289,7 @@ function actualizar_(id, c) {
     var dia = buscarDia_(leerDias_().lista, p.date);
     v.opcion = dia ? opcionValida_(dia, c.option) : limpiar_(c.option, 30);
   }
+  if ('qty' in c) v.cantidad = cantidad_(c.qty);
   if ('place' in c) v.parte = limpiar_(c.place, 40);
   if ('time' in c) v.hora = hora_(c.time);
   if ('note' in c) v.nota = limpiar_(c.note, 80);
@@ -320,7 +324,7 @@ function opcionValida_(dia, valor) {
 
 function publico_(p) {
   return {
-    id: p.id, date: p.date, name: p.name, option: p.option, place: p.place, time: p.time, note: p.note,
+    id: p.id, date: p.date, name: p.name, option: p.option, qty: p.qty, place: p.place, time: p.time, note: p.note,
     paid: p.paid, delivered: p.delivered, createdAt: p.createdAt
   };
 }
@@ -342,6 +346,13 @@ function opciones_(v) {
       return true;
     })
     .slice(0, 8);
+}
+
+/** Cantidad entera entre 1 y 99; vacío o inválido cuenta como 1. */
+function cantidad_(v) {
+  var n = Math.floor(Number(v));
+  if (!isFinite(n) || n < 1) return 1;
+  return Math.min(n, 99);
 }
 
 function valor_(r, i) {

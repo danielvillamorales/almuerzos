@@ -9,13 +9,13 @@ App para tomar los pedidos de almuerzo de varias personas, por día, y llevar el
 ## Qué hace
 
 1. **Primero se crea el día de venta**: la fecha, qué se vende (por ejemplo Almuerzo), sus opciones (por ejemplo Sencilla, Doble), la hora de entrega y una observación opcional (menú, precio...).
-2. **Después se anotan los pedidos de ese día**: nombre, opción, para qué parte va (Diseño, Costos, Bodega...), hora y una nota opcional. Nombres y lugares se autocompletan con los de días anteriores.
+2. **Después se anotan los pedidos de ese día**: nombre, opción, cantidad, para qué parte va (Diseño, Costos, Bodega...), hora y una nota opcional. Nombres y lugares se autocompletan con los de días anteriores.
 3. **Al entregar y cobrar**, cada pedido tiene dos botones: **Por entregar / ✓ Entregado** y **Sin pagar / ✓ Pagó**. Si se toca por error, el mensaje de abajo tiene **Deshacer**.
 
 Además:
 
 - Filtros **Todos, Por entregar, Entregados y Sin pagar**, y **Por lugar** para agrupar las entregas por parte.
-- Totales por opción (por ejemplo 7 Sencillas, 7 Dobles, 14 Total) y cuántos se han entregado y pagado.
+- Totales por opción sumando las cantidades (por ejemplo 7 Sencillas, 8 Dobles, 15 Total) y cuántos se han entregado y pagado.
 - Atajos para Hoy, Mañana y los próximos días creados (con un punto naranja), y **+ Nuevo día**.
 - Tocando el nombre de una persona se puede editar o borrar su pedido. **Editar día** cambia el producto, las opciones o la observación, o borra el día con sus pedidos.
 - "Copiar resumen" y "Enviar por WhatsApp" mandan la lista del día con quién falta por recibir y por pagar.
@@ -61,6 +61,16 @@ window.ALMUERZOS_API_URL = "https://script.google.com/macros/s/XXXXXXXX/exec";
 
 En GitHub: abre `config.js`, toca el lápiz (**Edit**), pega la URL y toca **Commit changes**. La página se actualiza en uno o dos minutos.
 
+## Actualizar el código de Google
+
+Cuando cambie [`apps-script/Codigo.gs`](apps-script/Codigo.gs) hay que pegar la versión nueva en Google. La URL de la app no cambia.
+
+1. En Chrome abre https://script.google.com (en el celular, con **⋮ → Sitio de escritorio**) y entra al proyecto.
+2. Copia todo el texto de https://raw.githubusercontent.com/danielvillamorales/almuerzos/main/apps-script/Codigo.gs, borra el código del editor, pégalo y guarda con el ícono del disquete.
+3. **Implementar → Administrar implementaciones** → lápiz (**Editar**) → en **Versión** elige **Nueva versión** → **Implementar**.
+
+Si la página dice "Para guardar cantidades hay que actualizar el código en Google", es que falta este paso.
+
 ## Compartir
 
 Manda el enlace https://danielvillamorales.github.io/almuerzos/ por WhatsApp o donde quieras. No hace falta cuenta.
@@ -73,7 +83,6 @@ Cualquiera con el enlace puede borrar pedidos. Si se borra algo por error, en la
 - `config.js`: la URL de la hoja de Google.
 - `apps-script/Codigo.gs`: el servidor en Google Apps Script. Usa dos pestañas de la hoja:
   - **Dias**: `fecha, producto, opciones, hora, observacion, creado` (un día de venta por fecha).
-  - **Pedidos**: `id, fecha, nombre, opcion, parte, hora, nota, pagado, entregado, creado`.
+  - **Pedidos**: `id, fecha, nombre, opcion, cantidad, parte, hora, nota, pagado, entregado, creado` (en una hoja que ya existía, las columnas nuevas se agregan al final).
 - `claude-artifact/index.html`: la primera versión, publicada como Artifact de Claude (necesita cuenta de Claude y guarda sus datos aparte).
 
-Si cambias `Codigo.gs`, publica la nueva versión en **Implementar → Administrar implementaciones → editar (lápiz) → Versión: Nueva versión → Implementar**. Así la URL no cambia.
