@@ -362,6 +362,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 <script>
 (() => {
   const API = String(window.ALMUERZOS_API_URL || "").trim();
+  const APP_VERSION = "2026-10-08-5"; // igual que version.txt; se cambia en cada publicación
   const $ = (id) => document.getElementById(id);
 
   // ---------- Fechas (AAAA-MM-DD en hora local) ----------
@@ -1290,6 +1291,26 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
         () => setStatus("No se pudo copiar automáticamente.", { err: true }));
     } else setStatus("Tu navegador no permite copiar automáticamente.", { err: true });
   };
+
+  // Si hay una versión nueva publicada, recargar (solo si no hay nada a medio escribir)
+  let lastVersionCheck = 0;
+  async function checkUpdate() {
+    if (Date.now() - lastVersionCheck < 60000) return;
+    lastVersionCheck = Date.now();
+    try {
+      const r = await fetch("version.txt?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) return;
+      const v = (await r.text()).trim();
+      if (!v || v === APP_VERSION || pending > 0 || !$("addForm").hidden || dayMode !== null) return;
+      let tried = null;
+      try { tried = sessionStorage.getItem("almuerzos.recarga"); } catch (_) {}
+      if (tried === v) return; // ya se recargó por esta versión; no insistir
+      try { sessionStorage.setItem("almuerzos.recarga", v); } catch (_) {}
+      location.reload();
+    } catch (_) {}
+  }
+  checkUpdate();
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
 
   // ---------- Inicio ----------
   renderDate();
