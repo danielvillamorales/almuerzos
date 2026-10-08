@@ -6,7 +6,9 @@ App para tomar los pedidos de almuerzo de varias personas por fecha y llevar el 
 
 ## Qué hace
 
-- Primero se elige la **fecha del pedido** y se cargan todos los pedidos de ese día.
+- La fecha es el **día en que se necesita el almuerzo**. Se elige arriba (o con los atajos Hoy, Mañana y los próximos días que ya tienen pedidos) y se cargan todos los pedidos de ese día.
+- Al agregar un pedido se indica para qué día se necesita, así se pueden tomar pedidos con anticipación.
+- Al abrir la app, si hoy no hay pedidos, muestra el próximo día que sí tiene.
 - Cada pedido tiene nombre, tipo (Sencilla o Doble), hora y una nota opcional.
 - Al tocar el nombre de una persona: marcar que pagó, cambiar Sencilla/Doble o borrar.
 - Totales de sencillas, dobles y pedidos, y cuántos pagaron.
@@ -18,7 +20,7 @@ App para tomar los pedidos de almuerzo de varias personas por fecha y llevar el 
 `index.html` es una sola página (HTML, CSS y JavaScript sin dependencias) publicada como Artifact de Claude.
 Los datos se guardan en la base de datos compartida del artifact (`claude.use("db")`):
 
-- `orders/<id>`: `{ date: "YYYY-MM-DD", name, type: "Sencilla" | "Doble", time, note, paid, createdAt }`
+- `orders/<id>`: `{ date: "YYYY-MM-DD" (día en que se necesita), name, type: "Sencilla" | "Doble", time, note, paid, createdAt }`
 
 ## Compartir
 
