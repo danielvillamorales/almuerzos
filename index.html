@@ -446,6 +446,48 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     const ops = day ? day.opciones : [];
     if (!ops.includes(optSel)) optSel = ops[0] || "";
   }
+  // ---------- Memoria en el teléfono: muestra al instante lo último que se vio ----------
+  const memo = {};  // fecha -> { day, orders }
+  let meta = null;  // { days, names, places, version }
+  let fresh = false; // ya llegó la respuesta de Google para la fecha en pantalla
+  const STORE = "almuerzos.memoria.v1";
+  function loadStore() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE) || "null");
+      if (s && s.api === API) { Object.assign(memo, s.memo || {}); meta = s.meta || null; }
+    } catch (_) {}
+  }
+  let storeTimer = null;
+  function saveStore() {
+    clearTimeout(storeTimer);
+    storeTimer = setTimeout(() => {
+      try {
+        const min = addDays(todayKey(), -7);
+        const keep = {};
+        for (const k of Object.keys(memo)) if (k >= min || k === date) keep[k] = memo[k];
+        localStorage.setItem(STORE, JSON.stringify({ api: API, memo: keep, meta }));
+      } catch (_) {}
+    }, 400);
+  }
+  function remember(j) {
+    const f = j.fecha || date;
+    memo[f] = { day: j.day || null, orders: Array.isArray(j.orders) ? j.orders : [] };
+    if (j.upcoming) {
+      const t = todayKey();
+      for (const k of Object.keys(memo)) if (k >= t && k !== f && !j.upcoming[k]) delete memo[k];
+      for (const [k, v] of Object.entries(j.upcoming)) memo[k] = { day: v.day || null, orders: Array.isArray(v.orders) ? v.orders : [] };
+    }
+    meta = { days: j.days || {}, names: j.names || [], places: j.places || [], version: Number(j.version) || 1 };
+    saveStore();
+  }
+  function fromMemo(k) {
+    const m = memo[k];
+    if (m) { day = m.day; orders = m.orders.map((o) => ({ ...o })); loaded = true; fixOpt(); return true; }
+    // Google manda todos los próximos días con datos: si esta fecha no está, no tiene nada
+    if (apiVersion >= 3 && meta && k >= todayKey() && !days[k]) { day = null; orders = []; loaded = true; fixOpt(); return true; }
+    return false;
+  }
+
   function apply(j) {
     day = j.day || null;
     orders = Array.isArray(j.orders) ? j.orders.slice() : [];
@@ -453,8 +495,21 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     apiVersion = Number(j.version) || 1;
     if (Array.isArray(j.names)) fillList("names", j.names);
     if (Array.isArray(j.places)) fillList("places", j.places);
-    loaded = true;
+    loaded = true; fresh = true;
     fixOpt();
+    remember(j);
+  }
+
+  // Al abrir: si hoy no hay venta, mostrar el próximo día que sí tiene
+  function autoJump() {
+    if (picked || jumped || !loaded) return false;
+    jumped = true;
+    const t = todayKey();
+    if (date !== t || day || orders.length) return false;
+    const next = Object.keys(days).filter((k) => k > t).sort()[0];
+    if (!next) return false;
+    go(next, false);
+    return true;
   }
 
   async function refresh() {
@@ -465,15 +520,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       if (seq !== writeSeq || pending > 0 || d !== date) return;
       apply(j);
       if (loadError) { loadError = false; setStatus(""); }
-      // Al abrir: si hoy no hay venta, mostrar el próximo día que sí tiene
-      if (!picked && !jumped) {
-        jumped = true;
-        const t = todayKey();
-        if (d === t && !day && !orders.length) {
-          const next = Object.keys(days).filter((k) => k > t).sort()[0];
-          if (next) { go(next, false); return; }
-        }
-      }
+      if (autoJump()) return;
       renderAll();
     } catch (e) {
       if (d !== date) return;
@@ -495,7 +542,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       pending--;
       if (pending === 0) {
         savingIds.clear();
-        if (d === date) { apply(j); renderAll(); } else refresh();
+        if (d === date) { apply(j); renderAll(); } else { remember(j); refresh(); }
         setStatus(okMsg || "", okAction ? { action: okAction } : {});
       }
     } catch (e) {
@@ -744,7 +791,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     $("ordersArea").hidden = !showOrders;
     if (showOrders) { renderFilters(); renderList(); renderForm(); renderTotals(); }
     const u = units();
-    $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "");
+    $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "") + (fresh ? "" : " · actualizando…");
   }
 
   function summary() {
@@ -795,6 +842,8 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     day = null; orders = []; loaded = false; loadError = false;
     openRow = null; confirmDel = false; dayMode = null; dayConfirm = false;
     editingId = null; $("addForm").hidden = true;
+    fresh = false;
+    fromMemo(k);
     renderDate(); renderAll();
     refresh();
   }
@@ -946,8 +995,15 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     $("count").textContent = "Falta conectar la hoja de Google";
     return;
   }
-  renderAll();
-  refresh();
+  loadStore();
+  if (meta) {
+    days = meta.days || {};
+    apiVersion = Number(meta.version) || 0;
+    fillList("names", meta.names || []);
+    fillList("places", meta.places || []);
+  }
+  const jumpedNow = fromMemo(date) && autoJump();
+  if (!jumpedNow) { renderAll(); refresh(); }
   setInterval(() => { if (document.visibilityState === "visible" && pending === 0) refresh(); }, 20000);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
 })();

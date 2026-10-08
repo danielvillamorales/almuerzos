@@ -20,6 +20,7 @@ Además:
 - Tocando el nombre de una persona se puede editar o borrar su pedido. **Editar día** cambia el producto, las opciones o la observación, o borra el día con sus pedidos.
 - "Copiar resumen" y "Enviar por WhatsApp" mandan la lista del día con quién falta por recibir y por pagar.
 - Todos ven los mismos datos. La página se actualiza sola cada 20 segundos y cada vez que se vuelve a abrir.
+- Es rápida aunque Google tarde: la página guarda en el teléfono lo último que vio y lo muestra al instante mientras se actualiza ("actualizando…"), y cada respuesta trae los próximos días, así que cambiar de día no espera. Guardar también es inmediato: el cambio se ve de una vez y se envía por detrás.
 
 ## Puesta en marcha (una sola vez, unos 5 minutos)
 
@@ -70,6 +71,8 @@ Cuando cambie [`apps-script/Codigo.gs`](apps-script/Codigo.gs) hay que pegar la 
 3. **Implementar → Administrar implementaciones** → lápiz (**Editar**) → en **Versión** elige **Nueva versión** → **Implementar**.
 
 Si la página dice "Para guardar cantidades hay que actualizar el código en Google", es que falta este paso.
+
+El código guarda las respuestas unos minutos para contestar más rápido. Lo que se cambia desde la app se ve al instante; si editas la hoja a mano, el cambio tarda hasta 2 minutos en aparecer en la app.
 
 ## Compartir
 
