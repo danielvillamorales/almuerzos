@@ -1,17 +1,8 @@
-<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pedido de almuerzos</title>
-<meta name="description" content="Anota los almuerzos de cada día, sencillos o dobles, y marca quién pagó.">
-<meta name="theme-color" content="#ef6c1a">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23ef6c1a'/%3E%3Cpath d='M20 14v13a5 5 0 0 0 5 5v18M30 14v13a5 5 0 0 1-5 5M25 14v11M45 50V14c-5 2-8 9-8 16s3 10 8 10' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
 <style>
-/* Una sola tarjeta blanca sobre fondo durazno: fecha, tabla Nombre/Pedido/Hora, totales */
+/* Layout: una sola tarjeta blanca sobre fondo durazno — fecha, tabla Nombre/Pedido/Hora, totales */
 :root {
   --bg-a: #fdf3ea;
   --bg-b: #fbd9bf;
@@ -30,27 +21,30 @@
   --soft: #f7f4f1;
   --danger: #c62828;
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg-a: #16110e; --bg-b: #2a1a10; --card: #1f1a17; --fg: #f5efea; --muted: #a29a94; --line: #352d28;
     --ok: #74d488; --ok-soft: #1b3122; --warn: #ffa36a; --warn-soft: #3a2418;
     --dark-tile: #f5efea; --dark-tile-fg: #1f1b18; --soft: #2a2420; --danger: #ff8a80;
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --bg-a: #16110e; --bg-b: #2a1a10; --card: #1f1a17; --fg: #f5efea; --muted: #a29a94; --line: #352d28;
+  --ok: #74d488; --ok-soft: #1b3122; --warn: #ffa36a; --warn-soft: #3a2418;
+  --dark-tile: #f5efea; --dark-tile-fg: #1f1b18; --soft: #2a2420; --danger: #ff8a80;
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
-[hidden] { display: none !important; }
-html { min-height: 100%; -webkit-text-size-adjust: 100%; }
+html { min-height: 100%; }
 body {
-  margin: 0; min-height: 100%;
+  min-height: 100%;
   background: var(--bg-a);
   background-image: radial-gradient(120% 80% at 100% 100%, var(--bg-b), transparent 60%), radial-gradient(90% 60% at 0% 0%, var(--bg-b), transparent 55%);
   background-attachment: fixed;
   color: var(--fg); font-family: var(--font); font-size: 15px; line-height: 1.35;
-  padding-block: max(28px, env(safe-area-inset-top)) max(40px, env(safe-area-inset-bottom));
-  padding-inline: 16px;
+  padding-block: 28px 40px; padding-inline: 16px;
 }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -71,13 +65,10 @@ header { display: flex; align-items: center; gap: 16px; }
 h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em; margin: 0; line-height: 1.1; text-wrap: balance; }
 .sub { color: var(--muted); font-size: 16px; margin-top: 4px; }
 
-.notice { background: var(--warn-soft); border-radius: 16px; padding: 14px 16px; font-size: 14px; }
-.notice b { display: block; margin-bottom: 4px; font-size: 15px; }
-
 /* Fecha */
 .datebar { display: flex; align-items: center; gap: 8px; background: var(--soft); border-radius: 16px; padding: 8px; }
 .nav { width: 38px; height: 38px; border-radius: 12px; border: none; background: var(--card); display: grid; place-items: center; flex: none; color: var(--muted); }
-.datebox { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; position: relative; cursor: pointer; }
+.datebox { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 1px; position: relative; }
 .datebox .k { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .datebox .day { font-weight: 700; font-size: 16px; text-align: center; }
 .datebox .day::first-letter { text-transform: uppercase; }
@@ -89,6 +80,7 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 .daychip .c { background: var(--soft); color: var(--muted); border-radius: 999px; padding: 1px 7px; font-size: 12px; font-variant-numeric: tabular-nums; }
 .daychip[aria-pressed="true"] { background: var(--dark-tile); color: var(--dark-tile-fg); border-color: var(--dark-tile); }
 .daychip[aria-pressed="true"] .c { background: color-mix(in srgb, currentColor 20%, transparent); color: inherit; }
+.flabel { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: -4px; }
 
 /* Tabla: una sola grilla para que Pedido y Hora queden alineados en todas las filas */
 .table { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; align-items: stretch; }
@@ -126,10 +118,9 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 }
 
 .actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; padding: 0 0 14px calc(var(--avatar) + var(--who-gap) + 2px); border-bottom: 1px solid var(--line); }
-.actions button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
+.actions button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; }
 .actions .danger { color: var(--danger); border-color: transparent; background: none; }
 .actions .confirm { background: var(--danger); color: #fff; border-color: var(--danger); }
-.actions .q { align-self: center; font-size: 13px; font-weight: 600; }
 
 .empty { text-align: center; color: var(--muted); padding: 32px 8px; border-bottom: 1px solid var(--line); }
 .empty b { color: var(--fg); display: block; font-size: 16px; margin-bottom: 4px; }
@@ -137,7 +128,6 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 /* Agregar */
 .addbtn { width: 100%; border: 1.5px dashed var(--line); background: none; border-radius: 16px; padding: 14px; font-weight: 600; color: var(--accent); }
 form.add { display: flex; flex-direction: column; gap: 10px; background: var(--soft); border-radius: 18px; padding: 14px; }
-.flabel { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: -4px; }
 .field { border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 11px 12px; min-width: 0; width: 100%; font-size: 16px; }
 .frow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
@@ -147,7 +137,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 #time { width: 120px; }
 .primary { border: none; background: var(--accent); color: #fff; font-weight: 700; padding: 11px 18px; border-radius: 12px; }
 .primary:disabled { opacity: .5; cursor: default; }
-.linkbtn { border: none; background: none; color: var(--muted); font-weight: 600; padding: 8px; text-decoration: none; font-size: 14px; }
+.linkbtn { border: none; background: none; color: var(--muted); font-weight: 600; padding: 8px; }
 
 /* Totales */
 .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -157,18 +147,14 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 .tile.s { background: var(--ok-soft); color: var(--ok); }
 .tile.d { background: var(--warn-soft); color: var(--warn); }
 .tile.t { background: var(--dark-tile); color: var(--dark-tile-fg); }
-.foot { display: flex; justify-content: space-between; align-items: center; gap: 4px 8px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
 .foot b { color: var(--fg); }
-.foot .links { display: flex; gap: 2px; flex-wrap: wrap; }
-.status { font-size: 13px; color: var(--muted); text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.status { font-size: 13px; color: var(--muted); text-align: center; }
 .status:empty { display: none; }
 .status.err { color: var(--danger); }
-.status button { border: 1px solid currentColor; background: none; color: inherit; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .cell { animation: in .2s ease-out both; } @keyframes in { from { opacity: .3; } } }
 </style>
-<script src="config.js"></script>
-</head>
-<body>
+
 <main class="card">
   <header>
     <div class="logo" aria-hidden="true">
@@ -179,11 +165,6 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       <div class="sub" id="count">Cargando…</div>
     </div>
   </header>
-
-  <div class="notice" id="setup" hidden>
-    <b>Falta conectar la hoja de Google</b>
-    La app todavía no tiene dónde guardar los pedidos. Sigue los pasos del README del repositorio y pega la URL en <code>config.js</code>.
-  </div>
 
   <div class="datebar">
     <button class="nav" id="prev" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -200,15 +181,14 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     <div class="table" id="table">
       <div class="th c-name">Nombre</div><div class="th c-pill">Pedido</div><div class="th c-time">Hora</div>
     </div>
-    <div class="empty" id="empty"></div>
+    <div class="empty" id="empty"><b>No hay almuerzos pedidos para este día</b>Toca “Agregar pedido” para anotar el primero.</div>
   </section>
 
   <button class="addbtn" id="openAdd">+ Agregar pedido</button>
   <form class="add" id="addForm" autocomplete="off" hidden>
     <label class="flabel" for="fdate">¿Para qué día se necesita el almuerzo?</label>
     <input class="field" type="date" id="fdate" required>
-    <input class="field" id="name" placeholder="Nombre" maxlength="40" list="names" required>
-    <datalist id="names"></datalist>
+    <input class="field" id="name" placeholder="Nombre" maxlength="40" required>
     <div class="frow">
       <div class="seg" role="group" aria-label="Tipo de almuerzo">
         <button type="button" data-v="Sencilla" aria-pressed="true">Sencilla</button>
@@ -231,149 +211,52 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 
   <div class="foot">
     <span id="paidLine">Pagaron <b>0</b> de 0</span>
-    <span class="links">
-      <button class="linkbtn" id="copy" type="button">Copiar resumen</button>
-      <a class="linkbtn" id="wa" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
-    </span>
+    <button class="linkbtn" id="copy">Copiar resumen</button>
   </div>
   <div class="status" id="status" role="status"></div>
 </main>
 
 <script>
 (() => {
-  const API = String(window.ALMUERZOS_API_URL || "").trim();
   const $ = (id) => document.getElementById(id);
-
-  // ---------- Fechas (AAAA-MM-DD en hora local) ----------
   const pad = (n) => String(n).padStart(2, "0");
   const toKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const fromKey = (k) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
   const todayKey = () => toKey(new Date());
-  const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return toKey(d); };
-  const WD_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-  const MONTHS_LONG = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-  const WD = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-  const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-  const dayText = (k) => { const d = fromKey(k); return `${WD_LONG[d.getDay()]} ${d.getDate()} de ${MONTHS_LONG[d.getMonth()]}`; };
-  const relName = (k) => k === todayKey() ? "Hoy" : k === addDays(todayKey(), 1) ? "Mañana" : k === addDays(todayKey(), -1) ? "Ayer" : "";
-  const forText = (k) => { const r = relName(k); return r ? `${r.toLowerCase()}, ${dayText(k)}` : `el ${dayText(k)}`; };
-
   const CLOCK = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   const CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>';
+
   const PALETTE = [
     ["#fde6d2", "#c4500f"], ["#d8f5de", "#2e8b3e"], ["#d6eafc", "#1f6fc4"], ["#e6defd", "#6a43c9"],
     ["#fde0ea", "#c42659"], ["#fdf1c2", "#a86a00"], ["#d0f6ea", "#1d8a6a"], ["#fde0e0", "#c62828"]
   ];
   const colorFor = (name) => { let h = 0; for (const c of name.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PALETTE[h % PALETTE.length]; };
-  const uid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
 
-  // ---------- Estado ----------
+  let db = null, canWrite = true, unsub = null;
   let date = todayKey();
-  let orders = [], days = {}, names = [];
-  let loaded = false, loadError = false;
+  let orders = [];
   let kind = "Sencilla";
   let openRow = null, confirmDel = false;
-  let picked = false, jumped = false;
-  let pending = 0, writeSeq = 0;
-  const savingIds = new Set();
+  let picked = false, jumped = false, upcoming = {};
 
-  function setStatus(msg, isErr, retry) {
-    const s = $("status");
-    s.textContent = msg || "";
-    s.classList.toggle("err", !!isErr);
-    if (retry) {
-      const b = document.createElement("button");
-      b.type = "button"; b.textContent = "Reintentar";
-      b.onclick = () => { setStatus("Cargando…"); refresh(); };
-      s.appendChild(b);
-    }
-  }
+  const setStatus = (msg, err) => { const s = $("status"); s.textContent = msg || ""; s.classList.toggle("err", !!err); };
+  const WD_LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const MONTHS_LONG = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  const dayText = (k = date) => { const d = fromKey(k); return `${WD_LONG[d.getDay()]} ${d.getDate()} de ${MONTHS_LONG[d.getMonth()]}`; };
+  const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate() + n); return toKey(d); };
+  const relName = (k) => k === todayKey() ? "Hoy" : k === addDays(todayKey(), 1) ? "Mañana" : k === addDays(todayKey(), -1) ? "Ayer" : "";
+  const forText = (k = date) => { const r = relName(k); return r ? `${r.toLowerCase()}, ${dayText(k)}` : `el ${dayText(k)}`; };
+  const WD = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
-  // ---------- Conexión con la hoja de Google ----------
-  async function apiGet(params) {
-    const u = new URL(API);
-    for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-    u.searchParams.set("t", Date.now());
-    const r = await fetch(u.toString());
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || "Error del servidor");
-    return j;
-  }
-  async function apiPost(body) {
-    // Sin encabezados extra: así el navegador no pide permiso previo (CORS) a Google.
-    const r = await fetch(API, { method: "POST", body: JSON.stringify(body) });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || "Error del servidor");
-    return j;
-  }
-
-  function apply(j) {
-    orders = Array.isArray(j.orders) ? j.orders.slice() : [];
-    days = j.days || {};
-    if (Array.isArray(j.names)) { names = j.names; renderNames(); }
-    loaded = true;
-  }
-
-  async function refresh() {
-    if (!API) return;
-    const seq = writeSeq, d = date;
-    try {
-      const j = await apiGet({ action: "list", fecha: d, desde: todayKey() });
-      if (seq !== writeSeq || pending > 0 || d !== date) return;
-      apply(j);
-      if (loadError) { loadError = false; setStatus(""); }
-      // Al abrir: si hoy no hay pedidos, mostrar el próximo día que sí tiene
-      if (!picked && !jumped) {
-        jumped = true;
-        const t = todayKey();
-        if (d === t && !orders.length) {
-          const next = Object.keys(days).filter((k) => k > t && days[k] > 0).sort()[0];
-          if (next) { go(next, false); return; }
-        }
-      }
-      renderAll();
-    } catch (e) {
-      if (d !== date) return;
-      loadError = true;
-      setStatus("No se pudieron cargar los pedidos. Revisa tu conexión.", true, true);
-      renderAll();
-    }
-  }
-
-  async function mutate(body, local, okMsg) {
-    if (!API) return;
-    writeSeq++; pending++;
-    local();
-    renderAll();
-    setStatus("Guardando…");
-    const d = date;
-    try {
-      const j = await apiPost({ ...body, fecha: d, desde: todayKey() });
-      pending--;
-      if (pending === 0) {
-        savingIds.clear();
-        if (d === date) { apply(j); renderAll(); } else refresh();
-        setStatus(okMsg || "");
-      }
-    } catch (e) {
-      pending--;
-      savingIds.clear();
-      writeSeq++;
-      setStatus("No se guardó el cambio (" + e.message + "). Intenta de nuevo.", true);
-      refresh();
-    }
-  }
-
-  // ---------- Pintar ----------
   function renderDate() {
     $("date").value = date;
     $("fdate").value = date;
     const r = relName(date);
-    $("dayLabel").textContent = (r ? r + ", " : "") + dayText(date);
+    $("dayLabel").textContent = (r ? r + ", " : "") + dayText();
   }
 
+  // Atajos: hoy, mañana y los próximos días que ya tienen pedidos
   function chipLabel(k) {
     const r = relName(k);
     if (r) return r;
@@ -382,7 +265,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   }
   function renderDays() {
     const t = todayKey();
-    const keys = [...new Set([t, addDays(t, 1), ...Object.keys(days).filter((k) => k >= t && days[k] > 0)])].sort().slice(0, 12);
+    const keys = [...new Set([t, addDays(t, 1), ...Object.keys(upcoming).filter(k => k >= t)])].sort().slice(0, 12);
     const box = $("days");
     box.textContent = "";
     for (const k of keys) {
@@ -390,26 +273,25 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       b.type = "button"; b.className = "daychip";
       b.setAttribute("aria-pressed", String(k === date));
       b.textContent = chipLabel(k);
-      if (days[k]) { const c = document.createElement("span"); c.className = "c"; c.textContent = days[k]; b.appendChild(c); }
+      if (upcoming[k]) { const c = document.createElement("span"); c.className = "c"; c.textContent = upcoming[k]; b.appendChild(c); }
       b.onclick = () => go(k);
       box.appendChild(b);
     }
   }
-
-  function renderNames() {
-    const dl = $("names");
-    dl.textContent = "";
-    for (const n of names) { const o = document.createElement("option"); o.value = n; dl.appendChild(o); }
-  }
-
-  function summary() {
-    const s = orders.filter((o) => o.type !== "Doble").length;
-    const lines = [`Almuerzos para ${forText(date)}`, ""];
-    orders.forEach((o, i) => lines.push(`${i + 1}. ${o.name} — ${o.type}${o.time ? " " + o.time : ""}${o.note ? " (" + o.note + ")" : ""}${o.paid ? " ✓" : ""}`));
-    lines.push("", `Sencillas: ${s} · Dobles: ${orders.length - s} · Total: ${orders.length}`);
-    const owe = orders.filter((o) => !o.paid).map((o) => o.name);
-    if (owe.length) lines.push(`Faltan por pagar: ${owe.join(", ")}`);
-    return lines.join("\n");
+  function watchUpcoming() {
+    db.collection("orders").where("date", ">=", todayKey()).orderBy("date").limit(1000).onSnapshot((snap) => {
+      const counts = {};
+      for (const d of snap.docs) { const k = d.data().date; counts[k] = (counts[k] || 0) + 1; }
+      upcoming = counts;
+      // Al abrir: si hoy no hay pedidos, mostrar el próximo día que sí los tiene
+      if (!picked && !jumped) {
+        jumped = true;
+        const t = todayKey();
+        const next = counts[t] ? null : Object.keys(counts).sort().find(k => k > t);
+        if (next) { go(next, false); return; }
+      }
+      renderDays();
+    }, () => {});
   }
 
   function render() {
@@ -417,13 +299,13 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     table.querySelectorAll(".r").forEach((n) => n.remove());
     for (const o of orders) {
       const li = document.createElement("div");
-      li.className = "r" + (savingIds.has(o.id) ? " saving" : "") + (openRow === o.id ? " open" : "");
+      li.className = "r" + (openRow === o.id ? " open" : "");
       const [bg, fg] = colorFor(o.name || "?");
       li.innerHTML = `
         <div class="cell c-name">
           <button class="who" type="button" aria-expanded="${openRow === o.id}">
             <span class="avatar" aria-hidden="true"></span>
-            <span class="txt"><span class="nm"></span><span class="note"></span><span class="pay"></span></span>
+            <span class="txt"><span class="nm"></span><span class="note"></span></span>
           </button>
         </div>
         <div class="cell c-pill"><span class="pill"></span></div>
@@ -435,139 +317,155 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       li.querySelector(".nm").textContent = o.name;
       const note = li.querySelector(".note");
       note.textContent = o.note || ""; note.hidden = !o.note;
-      const pay = li.querySelector(".pay");
+      const textBox = note.parentElement;
+      const pay = document.createElement("span");
+      pay.className = "pay" + (o.paid ? " yes" : "");
       pay.textContent = o.paid ? "Pagó" : "Sin pagar";
-      pay.classList.toggle("yes", !!o.paid);
+      textBox.appendChild(pay);
       const pill = li.querySelector(".pill");
       pill.textContent = o.type;
       pill.classList.add(o.type === "Doble" ? "d" : "s");
       const t = li.querySelector(".time");
-      if (o.time) { t.innerHTML = CLOCK; const sp = document.createElement("span"); sp.textContent = o.time; t.appendChild(sp); }
+      if (o.time) t.innerHTML = CLOCK + `<span>${o.time.replace(/[^0-9:]/g, "")}</span>`;
       else { t.textContent = "—"; t.classList.add("none"); }
 
-      li.querySelector(".who").onclick = () => { openRow = openRow === o.id ? null : o.id; confirmDel = false; render(); };
+      li.querySelector(".who").onclick = () => {
+        if (!canWrite) return;
+        openRow = openRow === o.id ? null : o.id; confirmDel = false; render();
+      };
 
       if (openRow === o.id) {
         const a = document.createElement("div");
         a.className = "actions";
         if (!confirmDel) {
           const bPay = document.createElement("button");
-          bPay.type = "button";
           bPay.textContent = o.paid ? "Marcar sin pagar" : "✓ Marcar pagó";
-          bPay.onclick = () => {
-            openRow = null; savingIds.add(o.id);
-            const v = !o.paid;
-            mutate({ action: "update", id: o.id, changes: { paid: v } }, () => { o.paid = v; });
-          };
+          bPay.onclick = () => { openRow = null; write(o.id, { ...o, paid: !o.paid }); };
           const bType = document.createElement("button");
-          bType.type = "button";
-          const other = o.type === "Doble" ? "Sencilla" : "Doble";
-          bType.textContent = "Cambiar a " + other;
-          bType.onclick = () => {
-            openRow = null; savingIds.add(o.id);
-            mutate({ action: "update", id: o.id, changes: { type: other } }, () => { o.type = other; });
-          };
+          bType.textContent = "Cambiar a " + (o.type === "Doble" ? "Sencilla" : "Doble");
+          bType.onclick = () => { openRow = null; write(o.id, { ...o, type: o.type === "Doble" ? "Sencilla" : "Doble" }); };
           const bDel = document.createElement("button");
-          bDel.type = "button"; bDel.className = "danger"; bDel.textContent = "Borrar";
+          bDel.className = "danger"; bDel.textContent = "Borrar";
           bDel.onclick = () => { confirmDel = true; render(); };
           a.append(bPay, bType, bDel);
         } else {
           const q = document.createElement("span");
-          q.className = "q"; q.textContent = "¿Borrar el pedido de " + o.name + "?";
-          const no = document.createElement("button");
-          no.type = "button"; no.textContent = "No";
+          q.textContent = "¿Borrar el pedido de " + o.name + "?"; q.style.cssText = "align-self:center;font-size:13px;font-weight:600";
+          const no = document.createElement("button"); no.textContent = "No";
           no.onclick = () => { confirmDel = false; render(); };
-          const yes = document.createElement("button");
-          yes.type = "button"; yes.className = "confirm"; yes.textContent = "Sí, borrar";
-          yes.onclick = () => {
-            openRow = null; confirmDel = false;
-            mutate({ action: "delete", id: o.id }, () => {
-              orders = orders.filter((x) => x.id !== o.id);
-              days[date] = Math.max(0, (days[date] || 1) - 1);
-            });
-          };
+          const yes = document.createElement("button"); yes.className = "confirm"; yes.textContent = "Sí, borrar";
+          yes.onclick = () => remove(o.id);
           a.append(q, no, yes);
         }
         li.appendChild(a);
       }
       table.appendChild(li);
     }
+    $("empty").hidden = orders.length > 0;
 
-    const empty = $("empty");
-    empty.hidden = orders.length > 0;
-    if (!API) empty.innerHTML = "<b>Sin conexión a la hoja</b>Cuando se conecte, aquí aparecerán los pedidos.";
-    else if (!loaded && !loadError) empty.innerHTML = "<b>Cargando pedidos…</b>";
-    else if (!loaded) empty.innerHTML = "<b>No se pudieron cargar los pedidos</b>Toca Reintentar abajo.";
-    else empty.innerHTML = "<b>No hay almuerzos pedidos para este día</b>Toca “Agregar pedido” para anotar el primero.";
-
-    const s = orders.filter((o) => o.type !== "Doble").length;
+    const s = orders.filter(o => o.type !== "Doble").length;
     $("tS").textContent = s; $("tD").textContent = orders.length - s; $("tT").textContent = orders.length;
-    $("count").textContent = !API ? "Falta conectar la hoja de Google" : !loaded && !orders.length ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}`;
-    const paid = orders.filter((o) => o.paid).length;
+    if (db) $("count").textContent = `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}`;
+    const paid = orders.filter(o => o.paid).length;
     $("paidLine").innerHTML = `Pagaron <b>${paid}</b> de ${orders.length}`;
-    $("wa").href = "https://wa.me/?text=" + encodeURIComponent(summary());
   }
 
-  function renderAll() { renderDays(); render(); }
-
-  // ---------- Navegación por fecha ----------
-  function go(k, byUser = true) {
-    if (byUser) picked = true;
-    if (k === date && loaded) return;
-    date = k;
-    loaded = false; orders = []; openRow = null; confirmDel = false;
-    renderDate(); renderAll();
-    refresh();
+  function subscribe() {
+    if (unsub) unsub();
+    orders = []; openRow = null; render();
+    if (!db) return;
+    $("count").textContent = "Cargando…";
+    unsub = db.collection("orders").where("date", "==", date).onSnapshot(
+      (snap) => {
+        orders = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        render();
+      },
+      () => setStatus("Se perdió la conexión. Recarga la página.", true)
+    );
   }
-  $("prev").onclick = () => go(addDays(date, -1));
-  $("next").onclick = () => go(addDays(date, 1));
+
+  const clean = ({ id, ...rest }) => rest;
+  async function write(id, o) {
+    try { await db.collection("orders").doc(id).set(clean(o)); setStatus(""); } catch (e) { onErr(e); }
+    render();
+  }
+  async function remove(id) {
+    openRow = null; confirmDel = false;
+    try { await db.collection("orders").doc(id).delete(); } catch (e) { onErr(e); }
+    render();
+  }
+  function onErr(e) {
+    if (e && e.code === "invalid_argument") { canWrite = false; applyWrite(); setStatus("Puedes ver los pedidos, pero no anotar. Pídele al dueño acceso de Editor.", true); }
+    else if (e && e.code === "quota_exceeded") setStatus("Se llenó el espacio. Borra pedidos de días viejos.", true);
+    else setStatus("No se pudo guardar. Revisa tu conexión e intenta de nuevo.", true);
+  }
+  function applyWrite() {
+    $("openAdd").hidden = !canWrite || !$("addForm").hidden;
+    if (!canWrite) $("addForm").hidden = true;
+    render();
+  }
+
+  const go = (k, byUser = true) => { if (byUser) picked = true; date = k; renderDate(); renderDays(); subscribe(); };
+  const shift = (n) => go(addDays(date, n));
+  $("prev").onclick = () => shift(-1);
+  $("next").onclick = () => shift(1);
   $("date").onchange = (e) => { if (e.target.value) go(e.target.value); };
-  $("date").onclick = (e) => { try { e.target.showPicker && e.target.showPicker(); } catch (_) {} };
   $("fdate").onchange = (e) => { if (e.target.value) go(e.target.value); };
+  $("date").onclick = (e) => { try { e.target.showPicker && e.target.showPicker(); } catch (_) {} };
 
-  // ---------- Agregar ----------
   $("openAdd").onclick = () => { $("fdate").value = date; $("addForm").hidden = false; $("openAdd").hidden = true; $("name").focus(); };
-  $("closeAdd").onclick = () => { $("addForm").hidden = true; $("openAdd").hidden = false; };
-  document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => {
+  $("closeAdd").onclick = () => { $("addForm").hidden = true; $("openAdd").hidden = !canWrite; };
+  document.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
     kind = b.dataset.v;
-    document.querySelectorAll(".seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    document.querySelectorAll(".seg button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
   });
-  $("addForm").addEventListener("submit", (e) => {
+  $("addForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = $("name").value.trim();
-    if (!name || !API) return;
+    if (!name) return;
+    if (!db) { setStatus("Abre el enlace con tu cuenta de Claude para anotar pedidos.", true); return; }
     const forDate = $("fdate").value || date;
     if (forDate !== date) go(forDate);
-    const o = { id: uid(), date: forDate, name, type: kind, time: $("time").value || "", note: $("note").value.trim(), paid: false, createdAt: Date.now() };
-    savingIds.add(o.id);
-    mutate({ action: "add", order: o }, () => {
-      if (o.date === date) orders.push(o);
-      days[o.date] = (days[o.date] || 0) + 1;
-    }, `Listo: pedido de ${name} para ${forText(forDate)}.`);
-    $("name").value = ""; $("note").value = ""; $("name").focus();
+    const btn = $("addBtn"); btn.disabled = true;
+    try {
+      await db.collection("orders").doc().set({
+        date: forDate, name, type: kind, time: $("time").value || "", note: $("note").value.trim(), paid: false, createdAt: Date.now()
+      });
+      $("name").value = ""; $("note").value = ""; $("name").focus();
+      setStatus(`Listo: pedido de ${name} para ${forText(forDate)}.`);
+    } catch (err) { onErr(err); }
+    btn.disabled = false;
   });
 
-  // ---------- Compartir ----------
   $("copy").onclick = () => {
-    const text = summary();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(
-        () => setStatus("Resumen copiado. Pégalo en WhatsApp."),
-        () => setStatus("No se pudo copiar automáticamente.", true));
-    } else setStatus("Tu navegador no permite copiar automáticamente.", true);
+    const s = orders.filter(o => o.type !== "Doble").length;
+    const lines = [`Almuerzos para ${forText()}`, ""];
+    orders.forEach((o, i) => lines.push(`${i + 1}. ${o.name} — ${o.type}${o.time ? " " + o.time : ""}${o.note ? " (" + o.note + ")" : ""}${o.paid ? " ✓" : ""}`));
+    lines.push("", `Sencillas: ${s} · Dobles: ${orders.length - s} · Total: ${orders.length}`);
+    const owe = orders.filter(o => !o.paid).map(o => o.name);
+    if (owe.length) lines.push(`Faltan por pagar: ${owe.join(", ")}`);
+    navigator.clipboard.writeText(lines.join("\n")).then(
+      () => setStatus("Resumen copiado. Pégalo en WhatsApp."),
+      () => setStatus("No se pudo copiar automáticamente.", true));
   };
 
-  // ---------- Inicio ----------
-  if (!API) {
-    $("setup").hidden = false;
-    $("openAdd").hidden = true;
-  }
   renderDate();
-  renderAll();
-  refresh();
-  setInterval(() => { if (document.visibilityState === "visible" && pending === 0) refresh(); }, 20000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
+  renderDays();
+  render();
+
+  (async () => {
+    db = await (window.claude?.use?.("db") ?? null);
+    if (!db) {
+      $("count").textContent = "Inicia sesión en Claude para ver los pedidos";
+      $("openAdd").hidden = true;
+      return;
+    }
+    const user = await (window.claude?.use?.("user") ?? null);
+    const w = user ? await user.can("data.write") : null;
+    if (w === false) canWrite = false;
+    applyWrite();
+    subscribe();
+    watchUpcoming();
+  })();
 })();
 </script>
-</body>
-</html>
