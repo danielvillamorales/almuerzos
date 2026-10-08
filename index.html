@@ -452,7 +452,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
 <script>
 (() => {
   const API = String(window.ALMUERZOS_API_URL || "").trim();
-  const APP_VERSION = "2026-10-08-7"; // igual que version.txt; se cambia en cada publicación
+  const APP_VERSION = "2026-10-08-8"; // igual que version.txt; se cambia en cada publicación
   const $ = (id) => document.getElementById(id);
 
   // ---------- Fechas (AAAA-MM-DD en hora local) ----------
@@ -649,19 +649,25 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     return true;
   }
 
+  // Cada consulta lleva un número: solo se usa la respuesta de la más reciente
+  let refreshSeq = 0, lastChange = Date.now(), lastActivity = Date.now();
+  const lastSig = {};
   async function refresh() {
     if (!API) return;
-    const seq = writeSeq, d = date;
+    const seq = writeSeq, d = date, my = ++refreshSeq;
     try {
       const j = await apiGet({ action: "list", fecha: d, desde: todayKey() });
-      if (seq !== writeSeq || pending > 0 || d !== date) return;
+      if (my !== refreshSeq || seq !== writeSeq || pending > 0 || d !== date) return;
+      const sig = JSON.stringify([j.day, j.orders, j.days]);
+      if (lastSig[d] !== undefined && lastSig[d] !== sig) lastChange = Date.now();
+      lastSig[d] = sig;
       apply(j);
       if (loadError) { loadError = false; setStatus(""); }
       if (autoJump()) return;
       renderAll();
       setTimeout(prefetch, 300);
     } catch (e) {
-      if (d !== date) return;
+      if (my !== refreshSeq || d !== date) return;
       loadError = true;
       setStatus("No se pudieron cargar los pedidos. Revisa tu conexión.", { err: true, action: { label: "Reintentar", fn: () => { setStatus("Cargando…"); refresh(); } } });
       renderAll();
@@ -1654,8 +1660,25 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   const jumpedNow = fromMemo(date) && autoJump();
   if (!jumpedNow) { renderAll(); refresh(); }
   if (view === "debts") setView("debts");
-  setInterval(() => { if (document.visibilityState === "visible" && pending === 0) refresh(); }, 20000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
+  // Google no avisa los cambios: la página pregunta cada 8 segundos mientras se usa,
+  // y más despacio cuando lleva rato sin cambios ni actividad.
+  let polling = false;
+  const pollDelay = () => {
+    const idle = Date.now() - Math.max(lastActivity, lastChange);
+    return idle < 3 * 60000 ? 8000 : idle < 15 * 60000 ? 20000 : 45000;
+  };
+  async function pollTick() {
+    if (document.visibilityState === "visible" && pending === 0 && !polling) {
+      polling = true;
+      try { await refresh(); } finally { polling = false; }
+    }
+    setTimeout(pollTick, pollDelay());
+  }
+  setTimeout(pollTick, pollDelay());
+  ["pointerdown", "keydown"].forEach((ev) => document.addEventListener(ev, () => { lastActivity = Date.now(); }, { passive: true }));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") { lastActivity = Date.now(); refresh(); }
+  });
 })();
 </script>
 </body>
