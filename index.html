@@ -395,7 +395,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   let dayMode = null, dayConfirm = false;
   let picked = false, jumped = false;
   let pending = 0, writeSeq = 0;
-  let apiVersion = 0; // 2 o más: el código de Google ya guarda cantidades
+  let apiVersion = 0; // 0: todavía no se sabe; 1: código viejo sin cantidades; 2 o más: guarda cantidades
   const savingIds = new Set();
   try { byPlace = localStorage.getItem("almuerzos.porLugar") === "1"; } catch (_) {}
 
@@ -809,8 +809,9 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       seg.appendChild(b);
     });
     $("openAdd").hidden = !day || !$("addForm").hidden;
-    $("qtyRow").hidden = apiVersion < 2;
-    $("qtyNote").hidden = apiVersion >= 2;
+    // Solo se esconde si Google respondió con el código viejo (sin versión)
+    $("qtyRow").hidden = apiVersion === 1;
+    $("qtyNote").hidden = apiVersion !== 1;
   }
 
   function renderAll() {
@@ -988,7 +989,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (!API || !day) return;
     const name = $("name").value.trim();
     if (!name) return;
-    const data = { name, option: optSel || day.opciones[0], qty: apiVersion >= 2 ? clampQty($("qty").value) : 1, place: $("place").value.trim(), time: $("time").value || "", note: $("note").value.trim() };
+    const data = { name, option: optSel || day.opciones[0], qty: apiVersion === 1 ? 1 : clampQty($("qty").value), place: $("place").value.trim(), time: $("time").value || "", note: $("note").value.trim() };
     if (editingId) {
       const id = editingId;
       savingIds.add(id);
