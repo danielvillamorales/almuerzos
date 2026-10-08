@@ -128,6 +128,28 @@ h1 { font-size: clamp(22px, 6vw, 28px); font-weight: 800; letter-spacing: -.02em
 .confirmbox { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; }
 .confirmbox span { font-weight: 600; font-size: 14px; margin-right: auto; }
 
+/* Pestañas y vista "Por cobrar" */
+.view { display: flex; flex-direction: column; gap: 18px; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--soft); border-radius: 14px; padding: 4px; }
+.tabs button { border: none; background: none; border-radius: 10px; padding: 10px 8px; font-weight: 700; font-size: 14.5px; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(60, 30, 10, .12); }
+.debts-progress { color: var(--muted); font-size: 14px; text-align: center; }
+.debts-progress:empty { display: none; }
+.person { display: flex; flex-direction: column; gap: 8px; padding: 14px 2px; border-bottom: 1px solid var(--line); }
+.person:first-child { border-top: 1px solid var(--line); }
+.person-top { display: flex; align-items: center; gap: 12px; }
+.person-top .avatar { width: 40px; height: 40px; font-size: 16px; }
+.person-top .nm { flex: 1; min-width: 0; font-weight: 700; font-size: 16.5px; overflow-wrap: break-word; }
+.owe { flex: none; font-weight: 700; font-size: 13.5px; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: 4px 10px; }
+.debt { display: flex; align-items: center; gap: 10px; padding-left: 52px; }
+.debt .what { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: break-word; }
+.debt .what b { font-weight: 600; }
+.debt .what span { color: var(--muted); }
+.debt.saving { opacity: .55; }
+.debt .tog { flex: none; }
+.debts-empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+.debts-empty b { color: var(--fg); display: block; font-size: 16px; margin-bottom: 4px; }
+
 /* Filtros y orden */
 .sortlbl { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); align-self: center; margin-right: 2px; }
 .exports { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -245,6 +267,12 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     La app todavía no tiene dónde guardar los pedidos. Sigue los pasos del README del repositorio y pega la URL en <code>config.js</code>.
   </div>
 
+  <div class="tabs" id="tabs" role="tablist" aria-label="Vista">
+    <button type="button" role="tab" id="tabDay" aria-selected="true">Pedidos del día</button>
+    <button type="button" role="tab" id="tabDebts" aria-selected="false">Por cobrar</button>
+  </div>
+
+  <div class="view" id="dayView">
   <div class="datebar" id="datebar">
     <button class="nav" id="prev" type="button" aria-label="Día anterior"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
     <label class="datebox">
@@ -356,13 +384,36 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
       </span>
     </div>
   </div>
+  </div>
+
+  <section class="view" id="debtsView" aria-label="Por cobrar" hidden>
+    <div class="daycard">
+      <div class="dc-top">
+        <div style="min-width:0">
+          <div class="dc-k">Faltan por pagar · hasta hoy</div>
+          <div class="dc-prod" id="debtsTitle">Revisando…</div>
+        </div>
+        <button type="button" class="linkbtn accent" id="debtsReload">Actualizar</button>
+      </div>
+      <div class="dc-meta" id="debtsSub" hidden></div>
+    </div>
+    <div class="debts-progress" id="debtsProgress"></div>
+    <div id="debtsList"></div>
+    <div class="foot" id="debtsFoot" hidden>
+      <span>Todos los días hasta hoy</span>
+      <span class="links">
+        <button class="linkbtn" id="debtsCopy" type="button">Copiar lista</button>
+        <a class="linkbtn" id="debtsWa" href="#" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      </span>
+    </div>
+  </section>
   <div class="status" id="status" role="status"></div>
 </main>
 
 <script>
 (() => {
   const API = String(window.ALMUERZOS_API_URL || "").trim();
-  const APP_VERSION = "2026-10-08-5"; // igual que version.txt; se cambia en cada publicación
+  const APP_VERSION = "2026-10-08-6"; // igual que version.txt; se cambia en cada publicación
   const $ = (id) => document.getElementById(id);
 
   // ---------- Fechas (AAAA-MM-DD en hora local) ----------
@@ -398,6 +449,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     if (/z$/i.test(w)) return w.slice(0, -1) + "ces";
     return w + "es";
   };
+  const nameKey = (t) => String(t || "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ");
   const placeKey = (o) => String(o.place || "").trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const clampQty = (v) => { const n = Math.floor(Number(v)); return n >= 1 ? Math.min(n, 99) : 1; };
   const qtyOf = (o) => clampQty(o.qty == null ? 1 : o.qty);
@@ -587,6 +639,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     try {
       const j = await apiPost({ ...body, fecha: d, desde: todayKey() });
       pending--;
+      debts.loadedAt = 0;
       if (pending === 0) {
         savingIds.clear();
         if (d === date) { apply(j); renderAll(); } else { remember(j); refresh(); }
@@ -857,6 +910,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
     $("ordersArea").hidden = !showOrders;
     if (showOrders) { renderFilters(); renderSorts(); renderList(); renderForm(); renderTotals(); }
     const u = units();
+    if (view === "debts") { $("count").textContent = "Por cobrar · todos los días"; return; }
     $("count").textContent = !loaded ? "Cargando…" : `${orders.length} ${orders.length === 1 ? "pedido" : "pedidos"}` + (u !== orders.length ? ` · ${u} unidades` : "") + (fresh ? "" : " · actualizando…");
   }
 
@@ -1041,6 +1095,171 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   $("qtyMinus").onclick = () => { $("qty").value = Math.max(1, clampQty($("qty").value) - 1); };
   $("qtyPlus").onclick = () => { $("qty").value = Math.min(99, clampQty($("qty").value) + 1); };
   $("qty").onchange = () => { $("qty").value = clampQty($("qty").value); };
+
+  // ---------- Por cobrar: quién falta por pagar, de todos los días hasta hoy ----------
+  let view = location.hash === "#por-cobrar" ? "debts" : "day";
+  const debts = { orders: [], days: {}, loadedAt: 0, loading: false, done: 0, total: 0, error: "" };
+  const debtSaving = new Set();
+  const shortDate = (k) => {
+    const d = fromKey(k), r = relName(k);
+    return r ? `${r} (${d.getDate()} ${MONTHS[d.getMonth()]})` : `${WD[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  };
+  const productOf = (k) => (debts.days[k] && debts.days[k].producto) || "";
+
+  function setView(v) {
+    view = v;
+    if (v === "debts") $("count").textContent = "Por cobrar · todos los días";
+    try { history.replaceState(null, "", v === "debts" ? "#por-cobrar" : location.pathname + location.search); } catch (_) {}
+    $("tabDay").setAttribute("aria-selected", String(v === "day"));
+    $("tabDebts").setAttribute("aria-selected", String(v === "debts"));
+    $("dayView").hidden = v !== "day";
+    $("debtsView").hidden = v !== "debts";
+    if (v === "debts") loadDebts(false); else renderAll();
+  }
+  $("tabDay").onclick = () => setView("day");
+  $("tabDebts").onclick = () => setView("debts");
+  $("debtsReload").onclick = () => loadDebts(true);
+
+  // Con el código de Google publicado se pide día por día (4 a la vez); "days" sin "desde" trae todas las fechas
+  async function loadDebts(force) {
+    if (!API || debts.loading) return;
+    if (!force && Date.now() - debts.loadedAt < 2 * 60000) { renderDebts(); return; }
+    debts.loading = true; debts.error = ""; debts.done = 0; debts.total = 0;
+    renderDebts();
+    try {
+      const t = todayKey();
+      const first = await apiGet({ action: "list", fecha: t });
+      debts.days = first.days || {};
+      const dates = Object.keys(debts.days).filter((k) => k <= t && debts.days[k].count > 0).sort();
+      debts.total = dates.length;
+      const byDate = {};
+      if (dates.includes(t)) { byDate[t] = first.orders || []; debts.done++; }
+      const queue = dates.filter((k) => k !== t);
+      let next = 0;
+      const worker = async () => {
+        while (next < queue.length) {
+          const k = queue[next++];
+          const j = await apiGet({ action: "list", fecha: k });
+          byDate[k] = Array.isArray(j.orders) ? j.orders : [];
+          debts.done++;
+          renderDebts();
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      debts.orders = Object.values(byDate).flat().filter((o) => !o.paid);
+      debts.loadedAt = Date.now();
+    } catch (e) {
+      debts.error = e instanceof TypeError ? "sin conexión" : e.message;
+    } finally {
+      debts.loading = false;
+      renderDebts();
+    }
+  }
+
+  function debtPeople() {
+    const groups = new Map();
+    for (const o of debts.orders) {
+      const k = nameKey(o.name);
+      if (!groups.has(k)) groups.set(k, { name: o.name, list: [] });
+      groups.get(k).list.push(o);
+    }
+    const people = [...groups.values()].sort((a, b) => coll.compare(a.name, b.name));
+    people.forEach((p) => p.list.sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt));
+    return people;
+  }
+
+  function debtsText() {
+    const people = debtPeople();
+    const n = debts.orders.length;
+    const lines = [`*Faltan por pagar* (hasta ${forText(todayKey())})`, ""];
+    for (const p of people) {
+      lines.push(`*${p.name}* — ${p.list.length} ${p.list.length === 1 ? "pedido" : "pedidos"}`);
+      for (const o of p.list) lines.push(`- ${shortDate(o.date)}: ${[productOf(o.date), optText(o)].filter(Boolean).join(", ")}`);
+    }
+    lines.push("", n ? `Total: ${n} ${n === 1 ? "pedido" : "pedidos"} sin pagar` : "Nadie debe.");
+    return lines.join("\n");
+  }
+
+  function renderDebts() {
+    if (view !== "debts") return;
+    const people = debtPeople();
+    const n = debts.orders.length;
+    const u = debts.orders.reduce((a, o) => a + qtyOf(o), 0);
+    const ready = debts.loadedAt > 0;
+    $("debtsTitle").textContent = !ready ? (debts.loading ? "Revisando…" : "—") : people.length ? `${people.length} ${people.length === 1 ? "persona debe" : "personas deben"}` : "Nadie debe";
+    $("debtsSub").textContent = ready && n ? `${n} ${n === 1 ? "pedido" : "pedidos"} sin pagar` + (u !== n ? ` · ${u} unidades` : "") : "";
+    $("debtsSub").hidden = !$("debtsSub").textContent;
+    $("debtsProgress").textContent = debts.loading
+      ? (debts.total ? `Revisando ${debts.done} de ${debts.total} ${debts.total === 1 ? "día" : "días"}…` : "Buscando los días con pedidos…")
+      : debts.error ? `No se pudo revisar todo (${debts.error}). Toca Actualizar.` : "";
+    $("debtsReload").disabled = debts.loading;
+
+    const box = $("debtsList");
+    box.textContent = "";
+    if (ready && !people.length && !debts.loading) {
+      box.innerHTML = "<div class='debts-empty'><b>Todos están al día</b>No hay pedidos sin pagar hasta hoy.</div>";
+    }
+    for (const p of people) {
+      const card = document.createElement("div");
+      card.className = "person";
+      const top = document.createElement("div");
+      top.className = "person-top";
+      const [bg, fg] = colorFor(p.name || "?");
+      const av = document.createElement("span");
+      av.className = "avatar"; av.setAttribute("aria-hidden", "true");
+      av.style.background = bg; av.style.color = fg;
+      av.textContent = (p.name || "?").trim().charAt(0).toUpperCase();
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = p.name;
+      const owe = document.createElement("span"); owe.className = "owe"; owe.textContent = `${p.list.length} sin pagar`;
+      top.append(av, nm, owe);
+      card.appendChild(top);
+      for (const o of p.list) {
+        const row = document.createElement("div");
+        row.className = "debt" + (debtSaving.has(o.id) ? " saving" : "");
+        const what = document.createElement("div");
+        what.className = "what";
+        const b = document.createElement("b"); b.textContent = shortDate(o.date);
+        const rest = document.createElement("span");
+        rest.textContent = " · " + [productOf(o.date), optText(o), o.place].filter(Boolean).join(" · ");
+        what.append(b, rest);
+        const pay = btn("Marcar pagó", () => setPaidFromDebts(o, true), "tog");
+        pay.disabled = debtSaving.has(o.id);
+        row.append(what, pay);
+        card.appendChild(row);
+      }
+      box.appendChild(card);
+    }
+    $("debtsFoot").hidden = !ready;
+    $("debtsWa").href = "https://wa.me/?text=" + encodeURIComponent(debtsText());
+  }
+
+  async function setPaidFromDebts(o, paid) {
+    debtSaving.add(o.id);
+    renderDebts();
+    setStatus("Guardando…");
+    try {
+      const j = await apiPost({ action: "update", id: o.id, changes: { paid }, fecha: o.date, desde: todayKey() });
+      writeSeq++; // lo que estuviera cargando el día ya quedó viejo
+      if (o.date === date && pending === 0) apply(j); else remember(j);
+      if (paid) debts.orders = debts.orders.filter((x) => x.id !== o.id);
+      else if (!debts.orders.some((x) => x.id === o.id)) debts.orders.push({ ...o, paid: false });
+      setStatus(`${o.name}: ${paid ? "pagó" : "sin pagar"}.`, { action: { label: "Deshacer", fn: () => setPaidFromDebts(o, !paid) } });
+    } catch (e) {
+      setStatus("No se guardó: " + (e instanceof TypeError ? "sin conexión" : e.message) + ". Intenta de nuevo.", { err: true });
+    } finally {
+      debtSaving.delete(o.id);
+      renderDebts();
+      if (view === "day") renderAll();
+    }
+  }
+  $("debtsCopy").onclick = () => {
+    const text = debtsText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        () => setStatus("Lista copiada. Pégala en WhatsApp."),
+        () => setStatus("No se pudo copiar automáticamente.", { err: true }));
+    } else setStatus("Tu navegador no permite copiar automáticamente.", { err: true });
+  };
 
   // ---------- Descargar PDF o imagen (todos los pedidos, en el orden elegido) ----------
   const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -1316,7 +1535,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   renderDate();
   if (!API) {
     $("setup").hidden = false;
-    ["datebar", "days", "dayCard", "ordersArea"].forEach((id) => { $(id).hidden = true; });
+    ["tabs", "datebar", "days", "dayCard", "ordersArea"].forEach((id) => { $(id).hidden = true; });
     $("count").textContent = "Falta conectar la hoja de Google";
     return;
   }
@@ -1329,6 +1548,7 @@ form.add { display: flex; flex-direction: column; gap: 10px; background: var(--s
   }
   const jumpedNow = fromMemo(date) && autoJump();
   if (!jumpedNow) { renderAll(); refresh(); }
+  if (view === "debts") setView("debts");
   setInterval(() => { if (document.visibilityState === "visible" && pending === 0) refresh(); }, 20000);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh(); });
 })();

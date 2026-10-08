@@ -15,6 +15,7 @@ App para tomar los pedidos de almuerzo de varias personas, por día, y llevar el
 Además:
 
 - Filtros **Todos, Por entregar, Entregados y Sin pagar**.
+- Pestaña **Por cobrar**: revisa todos los días hasta hoy y muestra quién falta por pagar, agrupado por persona (día, producto, pedido y dirección de cada deuda). Ahí mismo se puede **Marcar pagó**, copiar la lista o enviarla por WhatsApp. Tiene su propio enlace para compartir: https://danielvillamorales.github.io/almuerzos/#por-cobrar
 - **Ordenar** por llegada, dirección (la parte a la que va), nombre u hora. Por dirección y por hora se agrupan con un título por grupo. El orden elegido se recuerda en cada teléfono.
 - **Descargar PDF** (tabla con todos los pedidos, totales y quién falta por recibir y pagar) y **Descargar imagen** (PNG lista para WhatsApp), siempre en el orden elegido.
 - Totales por opción sumando las cantidades (por ejemplo 7 Sencillas, 8 Dobles, 15 Total) y cuántos se han entregado y pagado.
