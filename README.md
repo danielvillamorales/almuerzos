@@ -8,13 +8,17 @@ App para tomar los pedidos de almuerzo de varias personas, por día, y llevar el
 
 ## Qué hace
 
-- La fecha es el **día en que se necesita el almuerzo**. Se elige arriba (o con los atajos Hoy, Mañana y los próximos días que ya tienen pedidos) y se cargan todos los pedidos de ese día.
-- Al agregar un pedido se indica para qué día se necesita, así se pueden tomar pedidos con anticipación.
-- Al abrir la app, si hoy no hay pedidos, muestra el próximo día que sí tiene.
-- Cada pedido tiene nombre, tipo (Sencilla o Doble), hora y una nota opcional. El nombre se autocompleta con los de días anteriores.
-- Al tocar el nombre de una persona: marcar que pagó, cambiar Sencilla/Doble o borrar.
-- Totales de sencillas, dobles y pedidos, y cuántos pagaron.
-- "Copiar resumen" y "Enviar por WhatsApp" mandan la lista del día con los que faltan por pagar.
+1. **Primero se crea el día de venta**: la fecha, qué se vende (por ejemplo Almuerzo), sus opciones (por ejemplo Sencilla, Doble), la hora de entrega y una observación opcional (menú, precio...).
+2. **Después se anotan los pedidos de ese día**: nombre, opción, para qué parte va (Diseño, Costos, Bodega...), hora y una nota opcional. Nombres y lugares se autocompletan con los de días anteriores.
+3. **Al entregar y cobrar**, cada pedido tiene dos botones: **Por entregar / ✓ Entregado** y **Sin pagar / ✓ Pagó**. Si se toca por error, el mensaje de abajo tiene **Deshacer**.
+
+Además:
+
+- Filtros **Todos, Por entregar, Entregados y Sin pagar**, y **Por lugar** para agrupar las entregas por parte.
+- Totales por opción (por ejemplo 7 Sencillas, 7 Dobles, 14 Total) y cuántos se han entregado y pagado.
+- Atajos para Hoy, Mañana y los próximos días creados (con un punto naranja), y **+ Nuevo día**.
+- Tocando el nombre de una persona se puede editar o borrar su pedido. **Editar día** cambia el producto, las opciones o la observación, o borra el día con sus pedidos.
+- "Copiar resumen" y "Enviar por WhatsApp" mandan la lista del día con quién falta por recibir y por pagar.
 - Todos ven los mismos datos. La página se actualiza sola cada 20 segundos y cada vez que se vuelve a abrir.
 
 ## Puesta en marcha (una sola vez, unos 5 minutos)
