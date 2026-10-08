@@ -1,0 +1,17 @@
+name: Verificar hoja de Google
+on: push
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a la aplicación web (solo lectura)
+        run: |
+          U='https://script.google.com/macros/s/AKfycbwOQRt6n3OIn7qTmeDtEh6obharjy8Ko1prNdoECzVllwMfL3At_eJfwhIFN9SiIM8BdA/exec'
+          echo "=== ping"
+          curl -sS -L "$U" | head -c 800; echo
+          echo "=== list"
+          curl -sS -L "$U?action=list&fecha=$(date +%F)&desde=$(date +%F)" | head -c 2000; echo
+          echo "=== POST sin cambios (accion desconocida)"
+          curl -sS -L --data '{"action":"verificar"}' -H 'Content-Type: text/plain;charset=utf-8' "$U" | head -c 800; echo
+          echo "=== CORS en GET"
+          curl -sS -L -D - -o /dev/null -H 'Origin: https://danielvillamorales.github.io' "$U?action=list&fecha=2026-10-08" | grep -i -E '^(HTTP|access-control-allow-origin|location|content-type)' | sed -E 's/(location: [^?]{0,60}).*/\1.../I'
